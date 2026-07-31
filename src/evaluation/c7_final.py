@@ -1,182 +1,231 @@
-"""
-C7: Final unified evaluation — all models on German test set.
-SFT vs Logistic Regression vs Zero-shot, with calibration metrics.
-"""
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
+"""C7: leakage-safe final evaluation of frozen German Credit predictions.
 
-import json, numpy as np
+The script is intentionally evaluation-only: it never loads a model and never
+re-runs inference.  For every model, it derives a threshold from the committed
+validation prediction artifact, freezes it, and applies it once to the matching
+test prediction artifact.  This makes the published result reproducible on a
+CPU-only environment and prevents test-set operating-point optimisation.
+
+Run from the repository root with:
+
+    python -m src.evaluation.c7_final
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+from typing import Any, Mapping, Sequence
+
+import numpy as np
 from sklearn.metrics import (
-    roc_auc_score, average_precision_score, brier_score_loss, log_loss,
-    accuracy_score, balanced_accuracy_score, f1_score, recall_score,
-    confusion_matrix
+    accuracy_score,
+    average_precision_score,
+    balanced_accuracy_score,
+    brier_score_loss,
+    confusion_matrix,
+    f1_score,
+    log_loss,
+    recall_score,
+    roc_auc_score,
 )
 
-def load(path):
-    with open(path) as f:
-        return [json.loads(l) for l in f if l.strip()]
+from src.evaluation.metrics import apply_threshold, select_cost_threshold
 
-def compute_ece(gts, scores, n_bins=10):
-    """Expected Calibration Error."""
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+FN_COST = 5
+FP_COST = 1
+
+# Each pair is a committed, model-output artifact.  Do not replace these paths
+# with live inference: adapter weight binaries are intentionally excluded from
+# the repository, while these predictions are the reproducible evaluation input.
+PREDICTION_ARTIFACTS: Mapping[str, Mapping[str, str]] = {
+    "Majority": {
+        "valid": "outputs/baselines/majority_valid.jsonl",
+        "test": "outputs/baselines/majority_test.jsonl",
+    },
+    "LogisticRegression": {
+        "valid": "outputs/baselines/logistic_regression_valid.jsonl",
+        "test": "outputs/baselines/logistic_regression_test.jsonl",
+    },
+    "Qwen-ZeroShot": {
+        "valid": "outputs/baselines/qwen_zero_shot_valid.jsonl",
+        "test": "outputs/baselines/qwen_zero_shot_test.jsonl",
+    },
+    "SFT-seed7": {
+        "valid": "outputs/sft/german_sft_seed7/valid_predictions.jsonl",
+        "test": "outputs/sft/german_sft_seed7/test_predictions.jsonl",
+    },
+    "SFT-multi": {
+        "valid": "outputs/sft/german_multi/valid_predictions.jsonl",
+        "test": "outputs/sft/german_multi/test_predictions.jsonl",
+    },
+}
+
+
+def load_prediction_records(path: Path) -> list[dict[str, Any]]:
+    """Load and validate a JSONL prediction artifact."""
+    if not path.is_file():
+        raise FileNotFoundError(f"prediction artifact not found: {path}")
+
+    records: list[dict[str, Any]] = []
+    required_fields = {"sample_id", "ground_truth", "risk_score"}
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip():
+            continue
+        record = json.loads(line)
+        missing = required_fields - record.keys()
+        if missing:
+            raise ValueError(f"{path}:{line_number} is missing required fields: {sorted(missing)}")
+        if record["ground_truth"] not in (0, 1):
+            raise ValueError(f"{path}:{line_number} has a non-binary ground_truth value")
+        if record["risk_score"] is None or not np.isfinite(float(record["risk_score"])):
+            raise ValueError(f"{path}:{line_number} has a missing or non-finite risk_score")
+        records.append(record)
+
+    if not records:
+        raise ValueError(f"prediction artifact is empty: {path}")
+    if len({record["sample_id"] for record in records}) != len(records):
+        raise ValueError(f"prediction artifact contains duplicate sample IDs: {path}")
+    return records
+
+
+def _labels_and_scores(records: Sequence[Mapping[str, Any]]) -> tuple[np.ndarray, np.ndarray]:
+    labels = np.asarray([record["ground_truth"] for record in records], dtype=int)
+    scores = np.asarray([record["risk_score"] for record in records], dtype=float)
+    return labels, scores
+
+
+def validate_ground_truth_alignment(records: Sequence[Mapping[str, Any]], split: str,
+                                    repository_root: Path = REPOSITORY_ROOT) -> None:
+    """Ensure prediction labels and IDs exactly match the frozen German split."""
+    source_path = repository_root / "data/processed/german/normalized" / f"{split}.jsonl"
+    if not source_path.is_file():
+        raise FileNotFoundError(f"frozen German split not found: {source_path}")
+    source_records = [
+        json.loads(line) for line in source_path.read_text(encoding="utf-8").splitlines() if line.strip()
+    ]
+    expected_labels = {record["sample_id"]: record["risk_label"] for record in source_records}
+    artifact_labels = {record["sample_id"]: record["ground_truth"] for record in records}
+    if artifact_labels != expected_labels:
+        raise ValueError(
+            f"prediction artifact does not exactly match frozen German {split} labels; "
+            "regenerate predictions from the declared split before evaluation"
+        )
+
+
+def compute_ece(labels: np.ndarray, scores: np.ndarray, n_bins: int = 10) -> float:
+    """Compute expected calibration error using fixed-width probability bins."""
     bins = np.linspace(0, 1, n_bins + 1)
     ece = 0.0
-    for i in range(n_bins):
-        mask = (scores >= bins[i]) & (scores < bins[i+1])
-        if mask.sum() == 0:
+    for index in range(n_bins):
+        # Include scores of exactly 1.0 in the final bin.
+        if index == n_bins - 1:
+            mask = (scores >= bins[index]) & (scores <= bins[index + 1])
+        else:
+            mask = (scores >= bins[index]) & (scores < bins[index + 1])
+        if not mask.any():
             continue
-        bin_acc = gts[mask].mean()
-        bin_conf = scores[mask].mean()
-        ece += (mask.sum() / len(scores)) * abs(bin_acc - bin_conf)
-    return ece
+        ece += (mask.sum() / len(scores)) * abs(labels[mask].mean() - scores[mask].mean())
+    return float(ece)
 
-def evaluate(name, gts, scores):
-    """All metrics from ground truth and risk scores."""
-    eps = 1e-12
-    preds_05 = (np.array(scores) >= 0.5).astype(int)
 
-    # Cost-optimal threshold (only for reporting, NOT used for metric selection)
-    best_t, best_c = 0.5, float("inf")
-    for t in np.arange(0.05, 0.96, 0.05):
-        p = (np.array(scores) >= t).astype(int)
-        c = sum(5 if g==1 and pr==0 else (1 if g==0 and pr==1 else 0) for g,pr in zip(gts,p))
-        if c < best_c: best_c = c; best_t = t
-    preds_opt = (np.array(scores) >= best_t).astype(int)
-    cm = confusion_matrix(gts, preds_opt, labels=[0,1])
-    fn_c = cm[1,0]; fp_c = cm[0,1]
-    hr_rate = preds_opt.mean()
+def evaluate_at_frozen_threshold(test_records: Sequence[Mapping[str, Any]], threshold: float) -> dict[str, Any]:
+    """Evaluate test predictions at an already selected threshold.
+
+    `threshold` is mandatory.  Keeping selection outside this function makes it
+    impossible for this test evaluator to tune an operating point from test
+    labels.
+    """
+    if threshold is None:
+        raise ValueError("test evaluation requires a threshold frozen on validation data")
+
+    labels, scores = _labels_and_scores(test_records)
+    predictions = apply_threshold(scores, threshold)
+    matrix = confusion_matrix(labels, predictions, labels=[0, 1])
+    false_negatives = int(matrix[1, 0])
+    false_positives = int(matrix[0, 1])
+    epsilon = 1e-12
 
     return {
-        "accuracy": accuracy_score(gts, preds_opt),
-        "balanced_accuracy": balanced_accuracy_score(gts, preds_opt),
-        "macro_f1": f1_score(gts, preds_opt, average="macro"),
-        "high_risk_recall": recall_score(gts, preds_opt, pos_label=1),
-        "low_risk_recall": recall_score(gts, preds_opt, pos_label=0),
-        "roc_auc": roc_auc_score(gts, scores),
-        "pr_auc": average_precision_score(gts, scores),
-        "nll": log_loss(gts, np.clip(scores, eps, 1-eps), labels=[0,1]),
-        "brier": brier_score_loss(gts, scores),
-        "ece": compute_ece(np.array(gts), np.array(scores)),
-        "threshold": best_t,
-        "cost": 5*fn_c + fp_c,
-        "hr_pred_rate": hr_rate,
-        "confusion_matrix": cm.tolist(),
+        "accuracy": float(accuracy_score(labels, predictions)),
+        "balanced_accuracy": float(balanced_accuracy_score(labels, predictions)),
+        "macro_f1": float(f1_score(labels, predictions, average="macro")),
+        "high_risk_recall": float(recall_score(labels, predictions, pos_label=1)),
+        "low_risk_recall": float(recall_score(labels, predictions, pos_label=0)),
+        "roc_auc": float(roc_auc_score(labels, scores)),
+        "pr_auc": float(average_precision_score(labels, scores)),
+        "nll": float(log_loss(labels, np.clip(scores, epsilon, 1 - epsilon), labels=[0, 1])),
+        "brier": float(brier_score_loss(labels, scores)),
+        "ece": compute_ece(labels, scores),
+        "threshold": float(threshold),
+        "threshold_source": "validation_cost_minimization",
+        "cost": FN_COST * false_negatives + FP_COST * false_positives,
+        "hr_pred_rate": float(predictions.mean()),
+        "confusion_matrix": matrix.tolist(),
     }
 
-# ============================================================
-# Load all predictions
-# ============================================================
-print("=" * 70)
-print("C7: Final Evaluation — German Credit Test Set (N=200)")
-print("=" * 70)
 
-all_results = {}
+def evaluate_model(valid_records: Sequence[Mapping[str, Any]],
+                   test_records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    """Freeze a validation-selected threshold, then evaluate the test artifact."""
+    valid_labels, valid_scores = _labels_and_scores(valid_records)
+    threshold, validation_cost = select_cost_threshold(
+        valid_scores, valid_labels, fn_cost=FN_COST, fp_cost=FP_COST
+    )
+    metrics = evaluate_at_frozen_threshold(test_records, threshold)
+    metrics["validation_cost"] = validation_cost
+    return metrics
 
-# B0: Majority
-gt_maj = [r["ground_truth"] for r in load("outputs/baselines/majority_test.jsonl")]
-sc_maj = [r["risk_score"] for r in load("outputs/baselines/majority_test.jsonl")]
-all_results["Majority"] = evaluate("Majority", np.array(gt_maj), np.array(sc_maj))
 
-# B1: Logistic Regression
-gt_lr = [r["ground_truth"] for r in load("outputs/baselines/logistic_regression_test.jsonl")]
-sc_lr = [r["risk_score"] for r in load("outputs/baselines/logistic_regression_test.jsonl")]
-all_results["LogisticRegression"] = evaluate("LogisticRegression", np.array(gt_lr), np.array(sc_lr))
+def run_evaluation(repository_root: Path = REPOSITORY_ROOT) -> dict[str, dict[str, Any]]:
+    """Evaluate every committed prediction pair and return JSON-serialisable metrics."""
+    results: dict[str, dict[str, Any]] = {}
+    for model_name, artifact_paths in PREDICTION_ARTIFACTS.items():
+        valid_path = repository_root / artifact_paths["valid"]
+        test_path = repository_root / artifact_paths["test"]
+        valid_records = load_prediction_records(valid_path)
+        test_records = load_prediction_records(test_path)
+        validate_ground_truth_alignment(valid_records, "valid", repository_root)
+        validate_ground_truth_alignment(test_records, "test", repository_root)
+        results[model_name] = evaluate_model(valid_records, test_records)
+    return results
 
-# B2: Qwen Zero-shot
-gt_q0 = [r["ground_truth"] for r in load("outputs/baselines/qwen_zero_shot_test.jsonl")]
-sc_q0 = [r["risk_score"] if r["risk_score"] is not None else 0.5 for r in load("outputs/baselines/qwen_zero_shot_test.jsonl")]
-all_results["Qwen-ZeroShot"] = evaluate("Qwen-ZeroShot", np.array(gt_q0), np.array(sc_q0))
 
-# C3: SFT seed 7
-raw_path = "outputs/sft/german_sft_seed7/test_predictions_raw.jsonl"
-gt_sft = [r["ground_truth"] for r in load(raw_path)]
-sc_sft = [r["risk_score"] for r in load(raw_path)]
-all_results["SFT-seed7"] = evaluate("SFT-seed7", np.array(gt_sft), np.array(sc_sft))
+def print_report(results: Mapping[str, Mapping[str, Any]]) -> None:
+    """Print a compact report suitable for local runs and CI logs."""
+    headers = ("Model", "ROC-AUC", "PR-AUC", "NLL", "Brier", "ECE", "Threshold", "Cost")
+    print(" | ".join(headers))
+    print(" | ".join("---" for _ in headers))
+    for model_name, metrics in results.items():
+        print(
+            f"{model_name} | {metrics['roc_auc']:.4f} | {metrics['pr_auc']:.4f} | "
+            f"{metrics['nll']:.4f} | {metrics['brier']:.4f} | {metrics['ece']:.4f} | "
+            f"{metrics['threshold']:.2f} | {metrics['cost']}"
+        )
 
-# C3: SFT multi (German-only samples from combined test)
-combined_test_path = "data/processed/multi/combined/sft/test.jsonl"
-with open(combined_test_path) as f:
-    combined_test = [json.loads(l) for l in f if l.strip()]
-german_test = [r for r in combined_test if r["metadata"]["dataset"] == "German"]
-print(f"  Multi-SFT German test samples: {len(german_test)}")
 
-# SFT multi adapter
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from peft import PeftModel
-MODEL_ID = "/data/share/model/Qwen3.5-4B"
-MULTI_ADAPTER = "outputs/sft/german_multi/best_adapter"
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=REPOSITORY_ROOT / "outputs/c7_final_metrics.json",
+        help="path for the regenerated metrics JSON (default: outputs/c7_final_metrics.json)",
+    )
+    return parser.parse_args()
 
-base = AutoModelForCausalLM.from_pretrained(MODEL_ID, dtype=torch.bfloat16, device_map="auto", trust_remote_code=True)
-model = PeftModel.from_pretrained(base, MULTI_ADAPTER)
-tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, trust_remote_code=True)
-model.eval()
 
-gt_multi, sc_multi = [], []
-for r in german_test:
-    msgs = r["messages"]
-    prompt = tokenizer.apply_chat_template(
-        [{"role":"system","content":msgs[0]["content"]},
-         {"role":"user","content":msgs[1]["content"]}],
-        tokenize=False, add_generation_prompt=True)
-    ids = tokenizer(prompt, return_tensors="pt").to(model.device)
-    with torch.no_grad():
-        lp = torch.nn.functional.log_softmax(model(**ids).logits[0,-1,:], dim=-1)
-    s_low = lp[tokenizer.encode("low",add_special_tokens=False)[0]].item()
-    s_high = lp[tokenizer.encode("high",add_special_tokens=False)[0]].item()
-    p_high = np.exp(s_high)/(np.exp(s_low)+np.exp(s_high))
-    gt_multi.append(r["metadata"]["risk_label"])
-    sc_multi.append(p_high)
+def main() -> None:
+    args = parse_args()
+    results = run_evaluation()
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8")
+    print_report(results)
+    print(f"\nSaved leakage-safe C7 metrics: {args.output}")
 
-all_results["SFT-multi"] = evaluate("SFT-multi", np.array(gt_multi), np.array(sc_multi))
 
-# ============================================================
-# Report
-# ============================================================
-print(f"\n{'='*70}")
-print("Unified Metrics Table (German test, N=200)")
-print(f"{'='*70}")
-
-headers = ["Model","ROC-AUC","PR-AUC","NLL","Brier","ECE","Acc","BalAcc","MacroF1","HR.Rec","LR.Rec","Cost"]
-col_w = [max(len(h), 10) for h in headers]
-fmt = "| " + " | ".join(f"{{:<{w}}}" for w in col_w) + " |"
-print(fmt.format(*headers))
-print("|" + "|".join("-"*(w+2) for w in col_w) + "|")
-
-for name in ["Majority","Qwen-ZeroShot","LogisticRegression","SFT-seed7","SFT-multi"]:
-    m = all_results[name]
-    vals = [name,
-            f"{m['roc_auc']:.4f}", f"{m['pr_auc']:.4f}",
-            f"{m['nll']:.4f}", f"{m['brier']:.4f}", f"{m['ece']:.4f}",
-            f"{m['accuracy']:.4f}", f"{m['balanced_accuracy']:.4f}", f"{m['macro_f1']:.4f}",
-            f"{m['high_risk_recall']:.4f}", f"{m['low_risk_recall']:.4f}", str(m['cost'])]
-    print(fmt.format(*vals))
-
-# Confusion matrices
-print(f"\n{'='*70}")
-print("Confusion Matrices (cost-optimal threshold per model)")
-print(f"{'='*70}")
-for name in ["LogisticRegression","SFT-seed7","SFT-multi"]:
-    cm = all_results[name]["confusion_matrix"]
-    print(f"  {name}: TN={cm[0][0]} FP={cm[0][1]} | FN={cm[1][0]} TP={cm[1][1]}  (cost={all_results[name]['cost']})")
-
-# Method boundary summary
-print(f"\n{'='*70}")
-print("Method Boundary Summary")
-print(f"{'='*70}")
-print(f"""
-  1. Logistic Regression remains the strongest baseline (ROC-AUC={all_results['LogisticRegression']['roc_auc']:.4f})
-  2. SFT brings Qwen from random (0.515) to competitive (0.747) — the only successful post-training method
-  3. DPO/SimPO/Risk-DPO all degrade performance — 6 experiments, 0 successes
-  4. Multi-dataset SFT improves overall ranking but shows negative transfer to German
-  5. Preference optimization on binary short-answer tasks is a methodological dead end
-  6. Future: longer reasoning-based outputs (Layer 2B) may create a viable path for preference learning
-""")
-
-# Save
-with open("outputs/c7_final_metrics.json","w") as f:
-    # Convert numpy types
-    clean = {}
-    for k, v in all_results.items():
-        clean[k] = {kk: (float(vv) if isinstance(vv, (np.floating, np.integer)) else vv) for kk, vv in v.items()}
-    json.dump(clean, f, indent=2)
-print("Saved: outputs/c7_final_metrics.json")
+if __name__ == "__main__":
+    main()

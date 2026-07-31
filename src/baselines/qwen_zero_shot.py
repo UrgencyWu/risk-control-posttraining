@@ -1,10 +1,8 @@
-"""
-B2: Qwen2.5-1.5B-Instruct Zero-shot Baseline
-No training. Use the SFT prompt with the base model.
-Scoring via token-level logprobs:
-  s_low  = log P("low risk" | prompt)
-  s_high = log P("high risk" | prompt)
-  p_high = exp(s_high) / (exp(s_low) + exp(s_high))
+"""B2: Qwen3.5-4B zero-shot baseline using a first-token class score.
+
+No training is performed.  The score compares the next-token log-probability
+of the first token of ``low`` and ``high`` after the prompt; it is *not* the
+conditional likelihood of the complete strings ``low risk`` and ``high risk``.
 """
 import sys
 import os
@@ -16,10 +14,11 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from src.evaluation.metrics import (
-    load_ground_truth, compute_metrics, save_predictions, generate_metrics_table, compute_cost
+    load_ground_truth, compute_metrics, save_predictions, generate_metrics_table,
+    select_cost_threshold,
 )
 
-MODEL_ID = "/data/share/model/Qwen3.5-4B"
+MODEL_ID = os.environ.get("RISK_CONTROL_MODEL_ID", "/data/share/model/Qwen3.5-4B")
 SFT_DIR = "data/processed/german/sft"
 OUTPUT_DIR = "outputs/baselines"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -41,11 +40,12 @@ def load_model_and_tokenizer(model_id=MODEL_ID):
 
 def compute_risk_scores(model, tokenizer, messages):
     """
-    Compute p_high and p_low from token logprobs.
-    Compares log P("low risk" | prompt) vs log P("high risk" | prompt).
+    Compute a first-token class score p(high) from next-token log-probabilities.
+
+    The normalisation is over the first token of ``low`` and ``high`` only.
+    See docs/EVALUATION_PROTOCOL.md for the complete score definition.
     """
-    # Build prompt from messages using Qwen2.5 chat template
-    # ms-swift uses chatml format for Qwen
+    # Build a Qwen ChatML prompt from system + user messages.
     text = tokenizer.apply_chat_template(
         messages[:-1],  # system + user, exclude assistant
         tokenize=False,
@@ -59,10 +59,7 @@ def compute_risk_scores(model, tokenizer, messages):
         logits = outputs.logits[0, -1, :]  # last token logits
         log_probs = torch.nn.functional.log_softmax(logits, dim=-1)
 
-    # Tokenize candidate responses
-    low_tokens = tokenizer.encode("low risk", add_special_tokens=False)
-    high_tokens = tokenizer.encode("high risk", add_special_tokens=False)
-    # Also check just "low" and "high" as fallback
+    # Score the first continuation token of the two class labels.
     low_single = tokenizer.encode("low", add_special_tokens=False)
     high_single = tokenizer.encode("high", add_special_tokens=False)
 
@@ -77,21 +74,8 @@ def compute_risk_scores(model, tokenizer, messages):
     return p_high, {"s_low": s_low, "s_high": s_high, "p_low": p_low, "p_high": p_high}
 
 
-def select_threshold(scores, ground_truth, fn_cost=5, fp_cost=1):
-    """Select optimal threshold on valid set by minimizing cost."""
-    best_threshold = 0.5
-    best_cost = float("inf")
-    for t in np.arange(0.1, 0.95, 0.05):
-        preds = (np.array(scores) >= t).astype(int)
-        cost, _, _ = compute_cost(ground_truth, preds, fn_cost, fp_cost)
-        if cost < best_cost:
-            best_cost = cost
-            best_threshold = t
-    return best_threshold, best_cost
-
-
 def run_qwen_zero_shot():
-    """B2: Qwen2.5-1.5B-Instruct zero-shot with logprob scoring."""
+    """Run the Qwen3.5-4B zero-shot baseline with first-token class scoring."""
     model, tokenizer = load_model_and_tokenizer()
 
     results = {}
@@ -134,10 +118,8 @@ def run_qwen_zero_shot():
         # Select threshold (on valid set) or use default 0.5
         if split == "valid":
             valid_scores_clean = [s for s in risk_scores if not np.isnan(s)]
-            valid_gt_clean = [risk_scores[i] for i, s in enumerate(risk_scores) if not np.isnan(s)]
-            # Actually need aligned gt:
             valid_gt_clean = [ground_truth[i] for i, s in enumerate(risk_scores) if not np.isnan(s)]
-            threshold, _ = select_threshold(valid_scores_clean, valid_gt_clean)
+            threshold, _ = select_cost_threshold(valid_scores_clean, valid_gt_clean)
             print(f"  Optimal threshold ({split}): {threshold:.2f}")
         else:
             # Use threshold from valid

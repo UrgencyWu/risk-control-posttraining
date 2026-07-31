@@ -18,7 +18,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 
 from src.evaluation.metrics import (
-    load_ground_truth, compute_metrics, save_predictions, generate_metrics_table, compute_cost
+    load_ground_truth, compute_metrics, save_predictions, generate_metrics_table,
+    select_cost_threshold,
 )
 
 NORMALIZED_DIR = "data/processed/german/normalized"
@@ -51,19 +52,6 @@ def extract_feature_matrix(records):
         num_data.append(num_row)
         cat_data.append(cat_row)
     return np.array(num_data), np.array(cat_data)
-
-
-def select_threshold(scores, ground_truth, fn_cost=5, fp_cost=1):
-    """Select optimal threshold on valid set by minimizing cost."""
-    best_threshold = 0.5
-    best_cost = float("inf")
-    for t in np.arange(0.1, 0.95, 0.05):
-        preds = (np.array(scores) >= t).astype(int)
-        cost, _, _ = compute_cost(ground_truth, preds, fn_cost, fp_cost)
-        if cost < best_cost:
-            best_cost = cost
-            best_threshold = t
-    return best_threshold, best_cost
 
 
 def run_logistic_regression():
@@ -104,7 +92,7 @@ def run_logistic_regression():
     test_scores = pipe.predict_proba(X_test)[:, 1]
 
     # Select threshold on valid set
-    threshold, valid_cost = select_threshold(valid_scores, y_valid)
+    threshold, valid_cost = select_cost_threshold(valid_scores, y_valid)
     print(f"  Optimal threshold (valid): {threshold:.2f}, cost={valid_cost}")
 
     results = {}

@@ -1,0 +1,2 @@
+# Default full environment for training and inference.
+-r requirements-train.txt

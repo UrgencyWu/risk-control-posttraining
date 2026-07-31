@@ -10,9 +10,9 @@ from datetime import datetime, timezone
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import LoraConfig, get_peft_model, PeftModel
 from torch.utils.data import DataLoader, Dataset as TorchDataset
-from src.evaluation.metrics import compute_metrics as eval_compute_metrics
+from src.evaluation.metrics import compute_metrics as eval_compute_metrics, select_cost_threshold
 
-MODEL_ID = "/data/share/model/Qwen3.5-4B"
+MODEL_ID = os.environ.get("RISK_CONTROL_MODEL_ID", "/data/share/model/Qwen3.5-4B")
 SFT_DIR = "data/processed/german/sft"
 OUTPUT_DIR = "outputs/sft"
 
@@ -179,12 +179,7 @@ def run_inference(model, tokenizer, split, path):
 def find_best_threshold(results):
     scores = np.array([r["risk_score"] for r in results])
     gts = np.array([r["ground_truth"] for r in results])
-    best_t, best_c = 0.5, float("inf")
-    for t in np.arange(0.05, 0.96, 0.05):
-        preds = (scores >= t).astype(int)
-        c = sum(5 if g==1 and p==0 else (1 if g==0 and p==1 else 0) for g,p in zip(gts,preds))
-        if c < best_c: best_c = c; best_t = t
-    return best_t, best_c
+    return select_cost_threshold(scores, gts)
 
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)

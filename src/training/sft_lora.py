@@ -19,12 +19,16 @@ from transformers import (
 from peft import LoraConfig, get_peft_model, TaskType, PeftModel
 from datasets import Dataset
 
-from src.evaluation.metrics import compute_metrics as eval_compute_metrics, generate_metrics_table
+from src.evaluation.metrics import (
+    compute_metrics as eval_compute_metrics,
+    generate_metrics_table,
+    select_cost_threshold,
+)
 
 # ============================================================
 # Config
 # ============================================================
-MODEL_ID = "/data/share/model/Qwen3.5-4B"
+MODEL_ID = os.environ.get("RISK_CONTROL_MODEL_ID", "/data/share/model/Qwen3.5-4B")
 SFT_DIR = "data/processed/german/sft"
 OUTPUT_BASE = "outputs/sft"
 # Use GPU 3 via CUDA_VISIBLE_DEVICES=3 (becomes cuda:0 to PyTorch)
@@ -317,19 +321,7 @@ def compute_best_threshold(results, fn_cost=5, fp_cost=1):
     """Find optimal threshold on validation set."""
     scores = np.array([r["risk_score"] for r in results])
     gts = np.array([r["ground_truth"] for r in results])
-    best_t, best_cost = 0.5, float("inf")
-    for t in np.arange(0.05, 0.96, 0.05):
-        preds = (scores >= t).astype(int)
-        cost = 0
-        for gt, pred in zip(gts, preds):
-            if gt == 1 and pred == 0:
-                cost += fn_cost
-            elif gt == 0 and pred == 1:
-                cost += fp_cost
-        if cost < best_cost:
-            best_cost = cost
-            best_t = t
-    return best_t, best_cost
+    return select_cost_threshold(scores, gts, fn_cost=fn_cost, fp_cost=fp_cost)
 
 
 def main():

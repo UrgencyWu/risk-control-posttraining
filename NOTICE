@@ -1,0 +1,12 @@
+Risk-Control Post-Training project notice
+
+This repository is an independent extension of the CALM project. The upstream
+MIT licence and its copyright notice remain in LICENSE and apply to material
+derived from that project.
+
+Copyright (c) 2026 Shaw Wu and project contributors for project-specific
+post-training pipelines, evaluation code, experiment documentation, and
+original additions, unless a file states otherwise.
+
+Third-party datasets, models, and dependencies retain their own licences and
+terms. See README.md for attribution and intended research-only use.

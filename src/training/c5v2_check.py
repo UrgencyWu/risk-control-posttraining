@@ -6,7 +6,7 @@ import json, torch, numpy as np
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel
 
-MODEL_ID = "/data/share/model/Qwen3.5-4B"
+MODEL_ID = os.environ.get("RISK_CONTROL_MODEL_ID", "/data/share/model/Qwen3.5-4B")
 SFT_ADAPTER = "outputs/sft/german_sft_seed7/best_adapter"
 PREF_PATH = "data/processed/german/preference/preference_train.jsonl"
 SFT_DIR = "data/processed/german/sft"

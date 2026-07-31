@@ -10,7 +10,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel
 from sklearn.metrics import roc_auc_score
 
-MODEL_ID = "/data/share/model/Qwen3.5-4B"
+MODEL_ID = os.environ.get("RISK_CONTROL_MODEL_ID", "/data/share/model/Qwen3.5-4B")
 ADAPTERS = {
     "SFT": "outputs/sft/german_multi/best_adapter",
     "DPO": "outputs/dpo/german_multi_dpo_multi/best_adapter",
