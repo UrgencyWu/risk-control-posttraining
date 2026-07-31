@@ -5,7 +5,7 @@
   &nbsp;·&nbsp;
   <a href="./README.zh-CN.md">简体中文</a>
   &nbsp;·&nbsp;
-  <a href="./docs/index.html">Interactive showcase / 交互式展示</a>
+  <a href="https://urgencywu.github.io/risk-control-posttraining/"><strong>Live Interactive Showcase / 在线交互展示</strong></a>
 </p>
 
 ## Research Question
