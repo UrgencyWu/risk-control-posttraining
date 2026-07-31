@@ -1,0 +1,39 @@
+{
+  "dataset": "German",
+  "task_type": "credit_scoring",
+  "target_type": "binary_risk",
+  "created_at": "2026-07-21T00:00:00Z",
+  "source_file": "data/credit_scoring/German/german.data",
+  "converter": "convert_german.py",
+  "random_seed": 10086,
+  "split_ratio": "7:1:2",
+  "total_samples": 1000,
+  "feature_count": 20,
+  "label_distribution": {
+    "overall": {
+      "low_risk": 700,
+      "high_risk": 300
+    },
+    "train": {
+      "low_risk": 494,
+      "high_risk": 206
+    },
+    "valid": {
+      "low_risk": 71,
+      "high_risk": 29
+    },
+    "test": {
+      "low_risk": 135,
+      "high_risk": 65
+    }
+  },
+  "files_generated": [
+    "normalized/train.jsonl",
+    "normalized/valid.jsonl",
+    "normalized/test.jsonl",
+    "sft/train.jsonl",
+    "sft/valid.jsonl",
+    "sft/test.jsonl",
+    "manifest.json"
+  ]
+}

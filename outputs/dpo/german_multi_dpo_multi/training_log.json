@@ -1,0 +1,9 @@
+{
+  "mode": "dpo",
+  "seed": 42,
+  "best_step": 45,
+  "best_loss": 0.6881,
+  "train_pairs": 549,
+  "valid_pairs": 81,
+  "beta": 0.05
+}

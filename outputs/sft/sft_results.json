@@ -1,0 +1,36 @@
+{
+  "model": "Qwen3.5-4B-SFT",
+  "per_seed": {
+    "SFT_seed42": {
+      "accuracy": 0.61,
+      "balanced_accuracy": 0.6513,
+      "macro_f1": 0.6052,
+      "high_risk_recall": 0.7692,
+      "cost": 138,
+      "fn_count": 15,
+      "fp_count": 63,
+      "valid_rate": 1.0,
+      "roc_auc": 0.7545,
+      "pr_auc": 0.5781
+    },
+    "SFT_seed7": {
+      "accuracy": 0.58,
+      "balanced_accuracy": 0.6729,
+      "macro_f1": 0.5796,
+      "high_risk_recall": 0.9385,
+      "cost": 100,
+      "fn_count": 4,
+      "fp_count": 80,
+      "valid_rate": 1.0,
+      "roc_auc": 0.7471,
+      "pr_auc": 0.555
+    }
+  },
+  "average": {
+    "accuracy": 0.595,
+    "roc_auc": 0.7508,
+    "high_risk_recall": 0.8538,
+    "cost": 119.0
+  },
+  "timestamp": "2026-07-21T11:51:28.450808+00:00"
+}

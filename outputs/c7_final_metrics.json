@@ -1,0 +1,127 @@
+{
+  "Majority": {
+    "accuracy": 0.675,
+    "balanced_accuracy": 0.5,
+    "macro_f1": 0.40298507462686567,
+    "high_risk_recall": 0.0,
+    "low_risk_recall": 1.0,
+    "roc_auc": 0.5,
+    "pr_auc": 0.325,
+    "nll": 8.980081862677453,
+    "brier": 0.325,
+    "ece": 0.325,
+    "threshold": 0.05,
+    "cost": 325.0,
+    "hr_pred_rate": 0.0,
+    "confusion_matrix": [
+      [
+        135,
+        0
+      ],
+      [
+        65,
+        0
+      ]
+    ]
+  },
+  "LogisticRegression": {
+    "accuracy": 0.675,
+    "balanced_accuracy": 0.7113960113960114,
+    "macro_f1": 0.6680201230879236,
+    "high_risk_recall": 0.8153846153846154,
+    "low_risk_recall": 0.6074074074074074,
+    "roc_auc": 0.7565811965811966,
+    "pr_auc": 0.5957059010217914,
+    "nll": 0.5520949084519913,
+    "brier": 0.18152482840773998,
+    "ece": 0.07546786,
+    "threshold": 0.2,
+    "cost": 113.0,
+    "hr_pred_rate": 0.53,
+    "confusion_matrix": [
+      [
+        82,
+        53
+      ],
+      [
+        12,
+        53
+      ]
+    ]
+  },
+  "Qwen-ZeroShot": {
+    "accuracy": 0.325,
+    "balanced_accuracy": 0.5,
+    "macro_f1": 0.24528301886792453,
+    "high_risk_recall": 1.0,
+    "low_risk_recall": 0.0,
+    "roc_auc": 0.5151566951566952,
+    "pr_auc": 0.348086408041895,
+    "nll": 1.7197409060870776,
+    "brier": 0.569590547614165,
+    "ece": 0.5931796549999998,
+    "threshold": 0.05,
+    "cost": 135.0,
+    "hr_pred_rate": 1.0,
+    "confusion_matrix": [
+      [
+        0,
+        135
+      ],
+      [
+        0,
+        65
+      ]
+    ]
+  },
+  "SFT-seed7": {
+    "accuracy": 0.58,
+    "balanced_accuracy": 0.672934472934473,
+    "macro_f1": 0.5796216594935442,
+    "high_risk_recall": 0.9384615384615385,
+    "low_risk_recall": 0.4074074074074074,
+    "roc_auc": 0.7471225071225072,
+    "pr_auc": 0.5550119117415107,
+    "nll": 0.5559732062680147,
+    "brier": 0.19025905272565002,
+    "ece": 0.06958475999999997,
+    "threshold": 0.15000000000000002,
+    "cost": 100.0,
+    "hr_pred_rate": 0.705,
+    "confusion_matrix": [
+      [
+        55,
+        80
+      ],
+      [
+        4,
+        61
+      ]
+    ]
+  },
+  "SFT-multi": {
+    "accuracy": 0.54,
+    "balanced_accuracy": 0.6472934472934473,
+    "macro_f1": 0.537037037037037,
+    "high_risk_recall": 0.9538461538461539,
+    "low_risk_recall": 0.34074074074074073,
+    "roc_auc": 0.7214245014245014,
+    "pr_auc": 0.5331445681885724,
+    "nll": 0.5667778504975557,
+    "brier": 0.19345869876972166,
+    "ece": 0.06012062366439827,
+    "threshold": 0.15000000000000002,
+    "cost": 104.0,
+    "hr_pred_rate": 0.755,
+    "confusion_matrix": [
+      [
+        46,
+        89
+      ],
+      [
+        3,
+        62
+      ]
+    ]
+  }
+}

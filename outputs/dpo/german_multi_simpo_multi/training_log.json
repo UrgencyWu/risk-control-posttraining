@@ -1,0 +1,9 @@
+{
+  "mode": "simpo",
+  "seed": 42,
+  "best_step": 60,
+  "best_loss": 0.7006,
+  "train_pairs": 549,
+  "valid_pairs": 81,
+  "beta": 0.05
+}

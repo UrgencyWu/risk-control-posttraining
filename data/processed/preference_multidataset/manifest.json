@@ -1,0 +1,8 @@
+{
+  "source_inference": "outputs/preference_inference",
+  "train_pairs": 549,
+  "valid_pairs": 81,
+  "keep_frac": 0.3,
+  "train_sha256": "4af8c1cd491e5ab6aa53d641351d1906636392f25b3665d4dc1922cd3477ee6d",
+  "valid_sha256": "2125d94e8aef55c13b77be160bacc59ca8c71ec5953581072894b3d9d854de0e"
+}

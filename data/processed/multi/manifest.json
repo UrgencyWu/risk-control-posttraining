@@ -1,0 +1,25 @@
+{
+  "datasets": [
+    "German",
+    "Australian"
+  ],
+  "task_type": "credit_scoring",
+  "target_type": "binary_risk",
+  "total": {
+    "train": 1182,
+    "valid": 169,
+    "test": 339
+  },
+  "german": {
+    "train": 700,
+    "valid": 100,
+    "test": 200
+  },
+  "australian": {
+    "train": 482,
+    "valid": 69,
+    "test": 139
+  },
+  "seed": 10086,
+  "split_ratio": "7:1:2"
+}

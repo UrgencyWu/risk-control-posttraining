@@ -1,0 +1,7 @@
+{
+  "seed": 42,
+  "train_size": 1182,
+  "valid_size": 169,
+  "best_step": 120,
+  "best_loss": 0.1601
+}

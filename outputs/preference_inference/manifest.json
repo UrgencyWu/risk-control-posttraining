@@ -1,0 +1,7 @@
+{
+  "model": "outputs/sft/german_multi/best_adapter",
+  "data": "data/processed/multi/combined/sft",
+  "train_samples": 0,
+  "train_sha256": "a369bea7168cebcc3854fcdb9216ef5812ac7787aea9c21f5b42d91b79b93300",
+  "valid_sha256": "841828f661435c07147bbfbd20c8795b6e9fe07801a3c2459e89f8da25713f45"
+}

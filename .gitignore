@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.eggs/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment & Secrets
+.env
+.env.*
+*.env.local
+secrets.*
+credentials.*
+*.pem
+*.key
+*.p12
+
+# Model weights & tokenizer (large binaries)
+**/adapter_model.safetensors
+**/tokenizer.json
+
+# Logs (training logs already tracked in outputs/)
+logs/
+*.log
+
+# Node modules
+frontend/node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
