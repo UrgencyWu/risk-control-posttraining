@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Bilingual interactive showcase for the Risk-Control Post-Training project.">
-    <title>Risk-Control Post-Training | Interactive Showcase</title>
+    <meta name="description" content="Outcome-oriented bilingual showcase for the Risk-Control Post-Training study.">
+    <title>Risk-Control Post-Training | Research Findings</title>
     <link rel="stylesheet" href="./assets/showcase.css">
   </head>
   <body>
@@ -24,25 +24,40 @@
 
     <main id="main-content">
       <section class="hero">
-        <div class="shell hero-grid">
-          <div>
-            <p class="eyebrow" data-i18n="eyebrow">APPLIED LLM POST-TRAINING · CREDIT RISK</p>
-            <h1 data-i18n="heroTitle">Evidence-led post-training, not a benchmark claim.</h1>
-            <p class="hero-copy" data-i18n="heroCopy">An end-to-end study of how LoRA SFT, preference optimization, and validation-only decision rules behave on small tabular credit-risk data.</p>
+        <div class="shell">
+          <div class="hero-intro">
+            <p class="eyebrow" data-i18n="eyebrow">RESEARCH OUTCOME · CREDIT RISK</p>
+            <h1 data-i18n="heroTitle">SFT learned useful risk ranking; preference optimization exposed a clear boundary.</h1>
+            <p class="hero-copy" data-i18n="heroCopy">On German Credit, Qwen3.5-4B moved from near-random zero-shot ranking to within 0.010 ROC-AUC of Logistic Regression. Six principal DPO/SimPO variants did not preserve that gain.</p>
             <div class="hero-actions">
-              <a class="button button-primary" href="../README.md" data-i18n="readmeLink">Read the technical README</a>
-              <a class="button button-secondary" href="./EVALUATION_PROTOCOL.md" data-i18n="protocolLink">Review the evaluation protocol</a>
+              <a class="button button-primary" href="#results-heading" data-i18n="evidenceLink">Explore the frozen evidence</a>
+              <a class="button button-secondary" href="../README.md" data-i18n="readmeLink">Read the technical record</a>
             </div>
           </div>
-          <aside class="evidence-card" aria-label="Verified outcome summary / 已验证结果摘要">
-            <p class="card-label" data-i18n="evidenceLabel">FROZEN RESULT</p>
-            <p class="evidence-number">0.515 <span>→</span> 0.747</p>
-            <p class="evidence-caption" data-i18n="evidenceCaption">Qwen3.5-4B zero-shot to LoRA SFT ROC-AUC</p>
-            <dl class="evidence-facts">
-              <div><dt data-i18n="factCost">SFT test Cost</dt><dd>100</dd></div>
-              <div><dt data-i18n="factThreshold">Threshold source</dt><dd data-i18n="factThresholdValue">Validation only</dd></div>
-            </dl>
-          </aside>
+
+          <div class="finding-grid" aria-label="Core research findings / 核心研究发现">
+            <article id="finding-sft" class="finding-card finding-card-success">
+              <p class="card-label" data-i18n="findingSftKicker">SFT EFFECT</p>
+              <p class="finding-number">+0.232</p>
+              <h2 class="finding-title" data-i18n="findingSftTitle">ROC-AUC gain after LoRA SFT</h2>
+              <p class="finding-copy" data-i18n="findingSftCopy">The zero-shot model scored 0.515; the frozen SFT checkpoint reached 0.747.</p>
+              <p class="finding-detail" aria-label="ROC-AUC increased from 0.515 to 0.747">0.515 <span aria-hidden="true">→</span> 0.747</p>
+            </article>
+
+            <article id="finding-baseline" class="finding-card finding-card-reference">
+              <p class="card-label" data-i18n="findingBaselineKicker">HONEST BASELINE</p>
+              <p class="finding-number finding-number-compare">0.757 <span>vs</span> 0.747</p>
+              <h2 class="finding-title" data-i18n="findingBaselineTitle">Logistic Regression remains slightly stronger on ranking</h2>
+              <p class="finding-copy" data-i18n="findingBaselineCopy">The ROC-AUC gap is 0.010. SFT is competitive, but the study does not claim stable superiority.</p>
+            </article>
+
+            <article id="finding-preference" class="finding-card finding-card-boundary">
+              <p class="card-label" data-i18n="findingPreferenceKicker">METHOD BOUNDARY</p>
+              <p class="finding-number">6 / 6</p>
+              <h2 class="finding-title" data-i18n="findingPreferenceTitle">Principal DPO/SimPO variants failed to exceed SFT</h2>
+              <p class="finding-copy" data-i18n="findingPreferenceCopy">Oracle, hard-pair, single-dataset, and multi-dataset runs shifted global label priors or collapsed decisions instead of improving sample-level ranking.</p>
+            </article>
+          </div>
         </div>
       </section>
 
@@ -101,10 +116,10 @@
         <div class="shell">
           <div class="section-heading compact-heading">
             <div>
-              <p class="eyebrow" data-i18n="pathEyebrow">EXPERIMENT PATH</p>
-              <h2 data-i18n="pathTitle">A complete result includes its boundaries</h2>
+              <p class="eyebrow" data-i18n="pathEyebrow">EVIDENCE CHAIN</p>
+              <h2 data-i18n="pathTitle">The findings are backed by a complete experimental path</h2>
             </div>
-            <p class="section-intro" data-i18n="pathCopy">The project preserves successful adaptation, strong baselines, and negative preference-optimization results as one evidence chain.</p>
+            <p class="section-intro" data-i18n="pathCopy">Successful adaptation, strong classical baselines, leakage-safe evaluation, and negative preference-optimization results are preserved as one auditable record.</p>
           </div>
           <ol id="experiment-path" class="experiment-path"></ol>
         </div>
