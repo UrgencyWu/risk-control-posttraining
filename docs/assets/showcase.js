@@ -4,16 +4,20 @@
 
   const copy = {
     en: {
-      eyebrow: "APPLIED LLM POST-TRAINING · CREDIT RISK",
-      heroTitle: "Evidence-led post-training, not a benchmark claim.",
-      heroCopy: "An end-to-end study of how LoRA SFT, preference optimization, and validation-only decision rules behave on small tabular credit-risk data.",
-      readmeLink: "Read the technical README",
-      protocolLink: "Review the evaluation protocol",
-      evidenceLabel: "FROZEN RESULT",
-      evidenceCaption: "Qwen3.5-4B zero-shot to LoRA SFT ROC-AUC",
-      factCost: "SFT test Cost",
-      factThreshold: "Threshold source",
-      factThresholdValue: "Validation only",
+      eyebrow: "RESEARCH OUTCOME · CREDIT RISK",
+      heroTitle: "SFT learned useful risk ranking; preference optimization exposed a clear boundary.",
+      heroCopy: "On German Credit, Qwen3.5-4B moved from near-random zero-shot ranking to within 0.010 ROC-AUC of Logistic Regression. Six principal DPO/SimPO variants did not preserve that gain.",
+      evidenceLink: "Explore the frozen evidence",
+      readmeLink: "Read the technical record",
+      findingSftKicker: "SFT EFFECT",
+      findingSftTitle: "ROC-AUC gain after LoRA SFT",
+      findingSftCopy: "The zero-shot model scored 0.515; the frozen SFT checkpoint reached 0.747.",
+      findingBaselineKicker: "HONEST BASELINE",
+      findingBaselineTitle: "Logistic Regression remains slightly stronger on ranking",
+      findingBaselineCopy: "The ROC-AUC gap is 0.010. SFT is competitive, but the study does not claim stable superiority.",
+      findingPreferenceKicker: "METHOD BOUNDARY",
+      findingPreferenceTitle: "Principal DPO/SimPO variants failed to exceed SFT",
+      findingPreferenceCopy: "Oracle, hard-pair, single-dataset, and multi-dataset runs shifted global label priors or collapsed decisions instead of improving sample-level ranking.",
       resultsEyebrow: "GERMAN CREDIT · TEST N = 200",
       resultsTitle: "Explore the frozen final metrics",
       metricLabel: "Compare by",
@@ -21,9 +25,9 @@
       selectionLabel: "SELECTED MODEL",
       tableModel: "Model",
       tableThreshold: "Threshold",
-      pathEyebrow: "EXPERIMENT PATH",
-      pathTitle: "A complete result includes its boundaries",
-      pathCopy: "The project preserves successful adaptation, strong baselines, and negative preference-optimization results as one evidence chain.",
+      pathEyebrow: "EVIDENCE CHAIN",
+      pathTitle: "The findings are backed by a complete experimental path",
+      pathCopy: "Successful adaptation, strong classical baselines, leakage-safe evaluation, and negative preference-optimization results are preserved as one auditable record.",
       protocolEyebrow: "EVALUATION GUARDRAIL",
       protocolTitle: "The operating point is frozen before test evaluation.",
       protocolCopy: "Every threshold is selected by minimizing 5 × false negatives + 1 × false positives on validation predictions. The committed test prediction artifact is then evaluated once at that frozen threshold.",
@@ -40,7 +44,7 @@
       metrics: { roc_auc: "ROC-AUC", pr_auc: "PR-AUC", cost: "Cost" },
       lowerBetter: "Lower is better",
       higherBetter: "Higher is better",
-      labels: { role: "Role", threshold: "Threshold", cost: "Cost", highRecall: "High-risk recall" },
+      labels: { threshold: "Threshold", cost: "Cost", highRecall: "High-risk recall" },
       roles: {
         majority: "Sanity-check lower bound",
         "zero-shot": "Unadapted LLM baseline",
@@ -59,21 +63,25 @@
         ["Data governance", "Frozen 700 / 100 / 200 split, ChatML records, schema checks.", "Verified", "success"],
         ["Strong baselines", "Majority, Logistic Regression, and zero-shot Qwen establish the comparison floor.", "Verified", "success"],
         ["LoRA SFT", "Three random seeds create useful risk ranking; seed 7 is the frozen downstream checkpoint.", "Verified", "success"],
-        ["Preference optimization", "DPO and SimPO variants are retained as negative evidence of label-prior collapse.", "Boundary", "boundary"],
+        ["Preference boundary", "Six principal DPO/SimPO variants fail to exceed SFT and expose label-prior collapse.", "Boundary", "boundary"],
         ["Leakage-safe C7", "Validation chooses the threshold; committed test predictions produce final metrics once.", "Verified", "success"]
       ]
     },
     zh: {
-      eyebrow: "应用型 LLM 后训练 · 信用风险",
-      heroTitle: "以证据驱动后训练，而非夸大基准结论。",
-      heroCopy: "端到端考察 LoRA SFT、偏好优化与仅使用验证集的决策规则，在小样本表格信用风险数据上的实际行为。",
-      readmeLink: "阅读技术 README",
-      protocolLink: "查看评测协议",
-      evidenceLabel: "冻结结果",
-      evidenceCaption: "Qwen3.5-4B 零样本到 LoRA SFT 的 ROC-AUC",
-      factCost: "SFT 测试 Cost",
-      factThreshold: "阈值来源",
-      factThresholdValue: "仅验证集",
+      eyebrow: "研究结论 · 信用风险",
+      heroTitle: "SFT 学到了有效风险排序；偏好优化暴露出清晰的方法边界。",
+      heroCopy: "在 German Credit 上，Qwen3.5-4B 从近似随机的零样本排序提升到距离 Logistic Regression 仅 0.010 ROC-AUC；六组主 DPO/SimPO 变体均未保持这一收益。",
+      evidenceLink: "查看冻结证据",
+      readmeLink: "阅读技术记录",
+      findingSftKicker: "SFT 效果",
+      findingSftTitle: "LoRA SFT 带来的 ROC-AUC 增量",
+      findingSftCopy: "零样本模型为 0.515，冻结 SFT checkpoint 达到 0.747。",
+      findingBaselineKicker: "诚实基线",
+      findingBaselineTitle: "Logistic Regression 的排序仍略强",
+      findingBaselineCopy: "ROC-AUC 相差 0.010。SFT 已具竞争力，但项目不声称稳定超越。",
+      findingPreferenceKicker: "方法边界",
+      findingPreferenceTitle: "六组主 DPO/SimPO 变体均未超过 SFT",
+      findingPreferenceCopy: "Oracle、hard pair、单数据集和多数据集实验改变了全局标签先验或导致决策坍缩，而没有改善样本级排序。",
       resultsEyebrow: "GERMAN CREDIT · 测试集 N = 200",
       resultsTitle: "交互探索冻结后的最终指标",
       metricLabel: "比较指标",
@@ -81,11 +89,11 @@
       selectionLabel: "当前模型",
       tableModel: "模型",
       tableThreshold: "阈值",
-      pathEyebrow: "实验路径",
-      pathTitle: "完整的结果，也要呈现它的边界",
-      pathCopy: "项目将成功的适配、强传统基线和偏好优化的负结果保留为同一条证据链。",
+      pathEyebrow: "证据链",
+      pathTitle: "核心结论由完整实验路径支撑",
+      pathCopy: "成功的 SFT、强传统基线、无泄漏评测与偏好优化负结果被保留为同一条可审计记录。",
       protocolEyebrow: "评测护栏",
-      protocolTitle: "在测试评估前，operating point 已被冻结。",
+      protocolTitle: "测试评估前，operating point 已被冻结。",
       protocolCopy: "每个阈值均在验证预测上最小化 5 × 假阴性 + 1 × 假阳性；之后只在冻结阈值下对已提交的测试预测工件评估一次。",
       protocolReadMore: "阅读完整评测协议 →",
       flowValid: "验证集预测",
@@ -100,7 +108,7 @@
       metrics: { roc_auc: "ROC-AUC", pr_auc: "PR-AUC", cost: "Cost" },
       lowerBetter: "越低越好",
       higherBetter: "越高越好",
-      labels: { role: "实验角色", threshold: "阈值", cost: "Cost", highRecall: "高风险召回" },
+      labels: { threshold: "阈值", cost: "Cost", highRecall: "高风险召回" },
       roles: {
         majority: "Sanity-check 下界",
         "zero-shot": "未适配的 LLM 基线",
@@ -118,8 +126,8 @@
       path: [
         ["数据治理", "冻结 700 / 100 / 200 划分、ChatML 记录与 Schema 校验。", "已验证", "success"],
         ["强基线", "Majority、Logistic Regression 与零样本 Qwen 建立比较下界。", "已验证", "success"],
-        ["LoRA SFT", "三个随机种子产生有效风险排序；seed 7 为冻结下游 checkpoint。", "已验证", "success"],
-        ["偏好优化", "DPO 与 SimPO 作为标签先验坍缩的负向证据被完整保留。", "方法边界", "boundary"],
+        ["LoRA SFT", "三个随机种子形成有效风险排序；seed 7 为冻结下游 checkpoint。", "已验证", "success"],
+        ["偏好优化边界", "六组主 DPO/SimPO 变体均未超过 SFT，并暴露标签先验坍缩。", "方法边界", "boundary"],
         ["无泄漏 C7", "验证集选择阈值；提交的测试预测只生成一次最终指标。", "已验证", "success"]
       ]
     }
@@ -135,6 +143,7 @@
   function currentCopy() { return copy[state.language]; }
   function modelById(id) { return dataset.models.find((model) => model.id === id); }
   function formatMetric(metric, value) { return metric === "cost" ? String(value) : value.toFixed(3); }
+
   function displayName(model) {
     if (state.language !== "zh") return model.name;
     return {
@@ -219,14 +228,32 @@
         "aria-label": `${displayName(model)}: ${formatMetric(metric, model[metric])}`
       });
       bar.addEventListener("click", () => selectModel(model.id));
-      bar.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); selectModel(model.id); } });
+      bar.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          selectModel(model.id);
+        }
+      });
       chart.append(bar);
 
-      const label = createSvgElement("text", { x: margin.left - 10, y: y + rowHeight * .36, "text-anchor": "end", fill: "currentColor", "font-size": width < 500 ? "10" : "12", "font-weight": selected ? "700" : "500" });
+      const label = createSvgElement("text", {
+        x: margin.left - 10,
+        y: y + rowHeight * .36,
+        "text-anchor": "end",
+        fill: "currentColor",
+        "font-size": width < 500 ? "10" : "12",
+        "font-weight": selected ? "700" : "500"
+      });
       label.textContent = displayName(model);
       chart.append(label);
 
-      const value = createSvgElement("text", { x: Math.min(margin.left + plotWidth * scaled + 8, width - 38), y: y + rowHeight * .36, fill: "currentColor", "font-size": "12", "font-weight": "750" });
+      const value = createSvgElement("text", {
+        x: Math.min(margin.left + plotWidth * scaled + 8, width - 38),
+        y: y + rowHeight * .36,
+        fill: "currentColor",
+        "font-size": "12",
+        "font-weight": "750"
+      });
       value.textContent = formatMetric(metric, model[metric]);
       chart.append(value);
     });
@@ -279,13 +306,27 @@
       row.tabIndex = 0;
       row.classList.toggle("is-selected", model.id === state.selectedModel);
       row.setAttribute("aria-label", displayName(model));
-      [displayName(model), model.roc_auc.toFixed(3), model.pr_auc.toFixed(3), model.nll.toFixed(3), model.brier.toFixed(3), model.ece.toFixed(3), String(model.cost), model.threshold.toFixed(2)].forEach((value) => {
+      [
+        displayName(model),
+        model.roc_auc.toFixed(3),
+        model.pr_auc.toFixed(3),
+        model.nll.toFixed(3),
+        model.brier.toFixed(3),
+        model.ece.toFixed(3),
+        String(model.cost),
+        model.threshold.toFixed(2)
+      ].forEach((value) => {
         const cell = document.createElement("td");
         cell.textContent = value;
         row.append(cell);
       });
       row.addEventListener("click", () => selectModel(model.id));
-      row.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); selectModel(model.id); } });
+      row.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          selectModel(model.id);
+        }
+      });
       tableBody.append(row);
     });
   }
@@ -326,10 +367,18 @@
     renderPath();
   }
 
-  metricSelect.addEventListener("change", () => { state.metric = metricSelect.value; renderChart(); });
-  document.querySelectorAll(".language-button").forEach((button) => {
-    button.addEventListener("click", () => { state.language = button.dataset.language; renderAll(); });
+  metricSelect.addEventListener("change", () => {
+    state.metric = metricSelect.value;
+    renderChart();
   });
+
+  document.querySelectorAll(".language-button").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.language = button.dataset.language;
+      renderAll();
+    });
+  });
+
   window.addEventListener("resize", () => renderChart());
   renderAll();
 })();
