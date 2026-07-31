@@ -1,166 +1,146 @@
-# Empowering Many, Biasing a Few: Generalist Credit Scoring through Large Language Models
+# Risk-Control Post-Training for Large Language Models
 
-<div>
-<div align="left">
-    <a target='_blank'>Duanyu Feng<sup>1</sup></span>&emsp;
-    <a target='_blank'>Yongfu Dai<sup>1</sup></span>&emsp;
-    <a href='https://jimin.chancefocus.com/' target='_blank'>Jimin Huang<sup>2</sup></a>&emsp;
-    <a target='_blank'>Yifang Zhang<sup>1</sup></a>&emsp;
-    <a target='_blank'>Qianqian Xie<sup>3</sup></a>&emsp;
-    <a target='_blank'>Weiguang Han<sup>3</sup></a>&emsp;
-    <a href='https://warrington.ufl.edu/directory/person/12693/' target='_blank'>Alejandro Lopez-Lira<sup>4</sup></a>&emsp;
-    <a target='_blank'>Hao Wang*<sup>1</sup></a>
-</div>
-<div>
-<div align="left">
-    <sup>1</sup>Sichuan University&emsp;
-    <sup>2</sup>ChanceFocus AMC&emsp;
-    <sup>3</sup>Wuhan University&emsp;
-    <sup>4</sup>University of Florida
-</div>
-<div align="left">
-    <img src='https://i.postimg.cc/NjKhDkGY/DFAF986-CCD6529-E52-D7830-F180-D-C37-C7-DEE-4340.png' alt='Sichuan University Logo' height='100px'>&emsp;
-    <img src='https://i.postimg.cc/xTsgsrqN/logo11.png' alt='ChanceFocus AMC Logo' height='100px'>&emsp;
-    <img src='https://i.postimg.cc/CLtkBwz7/57-EDDD9-FB0-DF712-F3-AB627163-C2-1-EF15655-13-FCA.png' alt='Wuhan University Logo' height='100px'>&emsp;
-     <img src='https://i.postimg.cc/XY1s2RHD/University-of-Florida-Logo-1536x864.jpg' alt='University of Florida Logo' height='100px'>
-</div>
+A portfolio-oriented research and engineering project that studies whether small instruction-tuned language models can perform **cost-sensitive credit-risk classification** after supervised and preference-based post-training.
 
+This repository is an independent extension of the open-source [CALM project](https://github.com/Dai-shen/CALM). The original CALM work provides the financial-risk task context and public datasets. This project focuses on rebuilding the data pipeline, establishing reproducible baselines, and evaluating post-training methods under asymmetric business costs.
 
-Our project **CALM** aims to better utilize large language models (LLMs) to study issues related to credit and risk assessment in the financial industry, including data construction, model training, model evaluation, and bias analysis. 
+> **Current publication status:** the experiment records summarized below were completed in the local development environment. The public `main` branch still contains primarily upstream CALM assets; training scripts, normalized datasets, configurations, and full run artifacts have not yet all been synchronized to GitHub. Results should therefore be treated as documented experimental records rather than independently reproducible public benchmarks at this stage.
 
-We will open the following parts in this project:
-* [Credit and Risk Assessment Instruction Dataset](./data)
-* [Credit and Risk Assessment Benchmark](#credit-and-risk-assessment-benchmark)
-* [Credit and Risk Assessment LLM Bias Analysis](./src/bias)
-* [**C**redit and Risk **A**ssessment **L**arge Language **M**odel (CALM-7B)](https://huggingface.co/daishen/CALM-7B)
-* [Our Paper "Empowering Many, Biasing a Few: Generalist Credit Scoring through Large Language Models"](https://arxiv.org/abs/2310.00566)
+## Project Motivation
 
-## News
-**[2023/10/15]** Our [Credit and Risk Assessment Large Language Model (CALM-7B)](https://huggingface.co/daishen/CALM-7B) has been officially released
+Credit-risk decisions are asymmetric: predicting a high-risk applicant as low risk is usually more costly than rejecting a low-risk applicant. Standard accuracy alone therefore gives an incomplete view of model utility.
 
-**[2023/10/01]** CALM v1.0 has been officially released, open-sourcing the [Instruction Dataset](./data), [Benchmark](#credit-and-risk-assessment-benchmark), [Bias Analysis](./src/bias) and [paper](https://arxiv.org/abs/2310.00566).
+This project asks three practical questions:
 
-## Contents
+1. Can a compact instruction-tuned LLM learn structured credit-risk classification from tabular data expressed as natural-language instructions?
+2. Can preference optimization improve high-risk recall or business-weighted cost beyond supervised fine-tuning?
+3. When LLM post-training fails to beat a conventional statistical baseline, what parts of the data, objective, and evaluation pipeline explain the gap?
 
-- [Introduction](#introduction)
-- [Credit and Risk Assessment Instruction Dataset](#credit-and-risk-assessment-instruction-dataset)
-- [Fine-tuning and Inference](#fine-tuning-and-inference)
-- [Credit and Risk Assessment Benchmark](#credit-and-risk-assessment-benchmark)
-- [Bias Analysis](#bias-analysis)
-- [Acknowledgements](#acknowledgements)
-- [Disclaimer](#disclaimer)
-- [Citation](#citation)
-- [License](#license)
+## Scope
 
-## Introduction
-Credit and risk assessment is a series of unique tasks in the financial industry, which play a significant role in various aspects of individuals and society . It evaluates the creditworthiness and risk situation of individuals, businesses, and even countries. The assessment includes tasks such as credit scoring, fraud detection, financial distress identification, and claim analysis. These tasks cover most aspects of our personal lives and social development, such as lending, insurance, and investment, which have a huge financial impact for the whole of society. Meanwhile, it is essential to note that data used for credit and risk assessment may collect some sensitive information such as gender and age. This may further lead to discrimination against certain groups. Therefore, in credit and risk assessment, the potential biases should be aware of to avoid negative social consequences.
+The implemented research scope is deliberately narrow:
 
-Currently, LLMs' potential in financial natural language processing (NLP) tasks is significantly emphasized. Some studies explore the ability of the LLMs to improve quantitative stock trading strategies, predict stock market returns, and analyze investment context. This further raises the question of whether LLMs will have sufficient capabilities if used for credit and risk assessment or if it may bring some bias. 
+- Base model: `Qwen2.5-1.5B-Instruct`
+- Primary task: binary credit-risk classification
+- Primary dataset: German Credit
+- Training path: SFT → DPO/SimPO experiments → risk-aware preference objective exploration
+- Evaluation: accuracy, high-risk recall, ROC-AUC, confusion matrix, and asymmetric misclassification cost
+- Infrastructure: PyTorch, Transformers, ModelScope, vLLM, Ray, Slurm, multi-GPU training
 
-We constructed the first comprehensive **benchmark** and **instruction datasets** with 70K data samples. We amalgamated an extensive array of 9 existing public datasets on 4 tasks, including credit scoring, fraud detection, financial distress identification, and claim analysis. It includes data that is meaningless, imbalanced, and high-dimensional. 
+PPO, GRPO, RLVR, and online reinforcement learning are outside the finalized project scope.
 
-We fine-tune our Credit and Risk Assessment LLM (**CALM**) based on Llama2-chat with the instructions.
+## Completed Work
 
-We also identify the inherent **biases** within the models.
+### 1. Data governance and reproducible preprocessing
 
-## Credit and Risk Assessment Instruction Dataset
-### Data Collection
-In the data collection, we provide a comprehensive overview of the tasks related to credit and risk assessment, and gather nine well-known open-source datasets with detailed introductions. 
+A normalized schema was designed for heterogeneous financial-risk datasets, covering:
 
-we classify it into four classes of tasks: credit scoring, fraud detection, financial distress identification, and claim analysis. All of them are binary classification problems and tabular-based.
-We finally collect nine datasets for these tasks, including three credit scoring datasets, two fraud detection datasets, two financial distress identification datasets, and two claim analysis datasets. 
-Among them, three original datasets (Australia, Credit Card Fraud, PortoSeguro) have been processed into meaningless symbols. 
-For those datasets with a large amount, we sample them based on the label distribution for our data collection.
-All of these original datasets are open-source and have been widely used and validated by the existing works.
+- unified binary labels and task metadata;
+- original-label traceability;
+- protected attributes such as gender, age group, and foreign-worker status;
+- deterministic train/validation/test splitting;
+- ChatML-style SFT conversion;
+- dataset manifests and reproducibility checks.
 
-![Image](./data.png)
+For the German Credit dataset, the completed pipeline contains:
 
-**For more detail, see Our Paper** ["Empowering Many, Biasing a Few: Generalist Credit Scoring through Large Language Models"](https://arxiv.org/abs/2310.00566).
+- 1,000 records;
+- 20 input features: 13 categorical and 7 numerical;
+- label mapping from the original `1/2` convention to `0/1`;
+- a deterministic `700/100/200` split with seed `10086`;
+- normalized and instruction-formatted outputs;
+- repeated conversion with identical SHA-256 hashes.
 
-### Data Construction
-In the data construction, we detail how we construct various instruction-tuning forms tailored to different datasets.
+### 2. Baseline system
 
-<div align="center"> <img src="./prompt.png" width = 800 /> </div>
+Three baseline families were evaluated on the frozen German Credit test set.
 
-Due to the unique nature of some datasets (many features or meaning-
-less symbols), we create two different forms of instructions table-based and description-based, to evaluate the LLMs. 
-Both forms of instruction first follow a similar template. For instance, [prompt] is a prompt created for each data, [input] expresses a single data from the original datasets, [output] is the corresponding correct label for the [input], [choices] are the available label options (such as ["Yes", "No"] or ["good", "bad"]), and [index] is the index of the correct label in the label set. Therefore, the differences between the two instructions come from the specific construction of [prompt] and [input].
+| Model | Accuracy | High-risk Recall | ROC-AUC | Cost |
+|---|---:|---:|---:|---:|
+| Majority classifier | 0.6750 | 0.0000 | 0.5000 | 325 |
+| Logistic Regression | 0.6750 | 0.8154 | 0.7566 | 113 |
+| Qwen zero-shot | 0.3200 | 0.9846 | 0.5152 | 140 |
 
-**Table-based Instruction.**
-This form of instruction is designed for data that contains too many features or meaningless symbols. As their features are too many or do not have any semantic information, it is hard to describe them in natural language with limited words. Therefore, in the [prompt], we explain the data is composed of meaningless symbols and provide the number of features; in the [input] section, we directly tell the values of each data.
-It is concise and convenient to construct for highly structured data. 
+The logistic-regression baseline is the strongest verified result. The zero-shot LLM detects most high-risk cases but substantially over-predicts risk, producing poor accuracy, near-random ranking quality, and a higher business cost than logistic regression.
 
+### 3. Cost-sensitive evaluation
 
-**Description-based Instruction.**
-This form of instruction is designed for the rest datasets that have clear semantic information about the features.
-Here, we use natural language in [input] to re-explain the meaning of features and the corresponding numerical values for each data. For instance, in credit scoring, we transfer the features as ``The purpose is car (new). The state of credit amount is 2366." This form makes LLMs easier to understand the data.
+The evaluation layer was designed around the business asymmetry of credit-risk prediction rather than accuracy alone. It includes:
 
-## Fine-tuning and Inference
-We further build our **C**redit and Risk **A**ssessment **L**arge Language **M**odel (CALM-7B) by fine-tuning the Llama2-chat, with the above instruction dataset. Except for the Lending Club, Polish, and PortoSeguro datasets, we leave them to test the LLM's ability on similar tasks.
+- high-risk-class recall;
+- ROC-AUC;
+- false-negative and false-positive accounting;
+- configurable asymmetric cost;
+- confusion-matrix analysis;
+- threshold-sensitive comparison against statistical baselines.
 
-On some extremely imbalanced datasets, including Credit Card Fraud, ccFraud, Taiwan Economic Journal and Travel Insurance, we resample the minority class on the training set. After resampling, the ratio of majority class samples to minority class samples was 2:1.
+This evaluation design prevents a model from appearing strong merely by predicting the minority risk class aggressively.
 
-The code of fine-tuning our LLM (CALM-7B) can be found in [CALM-train](https://github.com/Dai-shen/CALM-train).
+### 4. Post-training experimentation
 
+The project established the intended training and analysis path for:
 
-## Credit and Risk Assessment Benchmark
-We choose the latest and most popular LLMs as the baselines, including open resources and non-open resources. For the open resource LLMs, we use 6 LLMs, Bloomz, Vicuna, Llama1, Llama2, Llama2-chat, and Chatglm2. To ensure fairness and minimize computation costs, we use the around 7B-parameters version for all these LLMs. For the non-open resource LLMs, we use ChatGPT and GPT-4. In addition, We have also included a comparison of the results from the SOTA expert system models on various datasets.
+- response-only supervised fine-tuning;
+- completion-mask validation;
+- preference-pair construction;
+- DPO and SimPO hyperparameter exploration;
+- risk-aware preference construction based on high-risk errors;
+- VaR/CVaR-inspired objective analysis.
 
-### Evaluation Data
-Credit Scoring 
-- [German](https://huggingface.co/datasets/daishen/cra-german)
-- [Australia](https://huggingface.co/datasets/daishen/cra-australian)
-- [Lending Club](https://huggingface.co/datasets/daishen/cra-lendingclub)
-  
-Fraud Detection 
-- [Credit Card Fraud](https://huggingface.co/datasets/daishen/cra-ccf)
-- [ccFraud](https://huggingface.co/datasets/daishen/cra-ccfraud)
+The post-training experiments did **not** achieve the original target of reliably outperforming logistic regression on ROC-AUC and asymmetric cost. This negative result is retained as part of the project rather than hidden.
 
-Financial Distress Identification 
-- [Polish](https://huggingface.co/datasets/daishen/cra-ccfraud)
-- [Taiwan Economic Journal](https://huggingface.co/datasets/daishen/cra-taiwan)
+## Main Finding
 
-Claim Analysis
-- [PortoSeguro](https://huggingface.co/datasets/daishen/cra-portoseguro)
-- [Travel Insurance](https://huggingface.co/datasets/daishen/cra-travelinsurace)
+The central result is not that an LLM solved tabular credit scoring better than conventional machine learning. It did not.
 
+Instead, the project demonstrates a complete applied post-training workflow and identifies a meaningful failure boundary:
 
-### Evaluation Results
-![Image](./res.png)
+- instruction tuning can turn structured tabular records into a trainable language-model task;
+- high-risk recall can be increased by aggressive risk prediction;
+- improved recall alone does not imply better ranking or lower business cost;
+- on a small tabular dataset, logistic regression remains a stronger calibrated baseline;
+- preference optimization requires carefully constructed pairs, sufficient data diversity, and explicit calibration objectives to avoid merely shifting the prediction bias.
 
-## Bias Analysis
-We explore bias in three datasets using three LLMs (ChatGPT, GPT-4, and our model) that have the processing ability of the tasks. We consider the impact of gender, age, and foreign status on German, the impact of gender on ccFraud, and the impact of age on Travel Insurance. We set the old, female and foreigner as the unprivileged groups for gender, age, and foreign status, respectively. Except for the 'foreigner' in German, the DI values are near 1, indicating that the original datasets are unbiased on these sensitive features.
+This is an important practical conclusion for applied LLM engineering: model complexity should be justified against strong non-LLM baselines, especially for low-dimensional structured data.
 
-<div align="center"> <img src="./bias1.png" width = 300 /> </div>
+## Engineering and Research Skills Demonstrated
 
-After the prediction of the LLMs,  we compute the EOD and AOD on these features. 
-For ChatGPT and GPT-4, it indicates that they have a bias in some special cases. For example, GPT-4 is more likely to give females wrong predictions (AOD is -0.273) on the ccFraud dataset and prefer foreign workers on the German dataset (EOD is 0.289), even though the original data is unbiased (DI close to 1); on the German dataset, ChatGPT prefers to lend money to older people (EOD is 0.137). It's also interesting to note that the potential biases that exist in both ChatGPT and GPT-4 are not completely consistent with each other ('gender' and 'age' in German, and 'gender' in ccFraud). 
+- End-to-end LLM post-training workflow design
+- Deterministic data preprocessing and schema governance
+- ChatML instruction construction
+- Response-only SFT masking checks
+- DPO/SimPO and risk-aware preference objective analysis
+- Cost-sensitive machine-learning evaluation
+- Classical ML versus LLM baseline comparison
+- Multi-GPU experiment orchestration with Slurm, Ray, and vLLM
+- Failure analysis and scope control
 
-<div align="center"> <img src="./bias2.png" width = 400 /> </div>
+## Repository Roadmap
 
+The next repository-hardening steps are:
 
-## Acknowledgements
-This project is built upon the following open-source projects, and we are really thankful for them:
+1. synchronize the local preprocessing, baseline, and evaluation source code;
+2. publish frozen manifests and non-sensitive experiment configurations;
+3. add reproducible commands for data conversion, baseline evaluation, and SFT;
+4. publish run summaries and failure-analysis reports;
+5. clearly tag completed, partial, and planned experiments.
 
-- [**Llama 2**](https://github.com/facebookresearch/llama)
-- [**PIXIU**](https://github.com/chancefocus/PIXIU)
-- [**LLMindCraft**](https://github.com/XplainMind/LLMindCraft)
+Until these artifacts are synchronized, this README should be read as a transparent project dossier rather than a claim of fully reproducible open-source release.
+
+## Resume-Ready Project Summary
+
+> Built a cost-sensitive LLM post-training pipeline for credit-risk classification, covering deterministic data normalization, ChatML conversion, SFT and preference-optimization experiments, and asymmetric-cost evaluation. Established majority, logistic-regression, and Qwen baselines; found that logistic regression remained strongest with 0.7566 ROC-AUC and cost 113, while zero-shot Qwen achieved 0.9846 high-risk recall but suffered from over-prediction and near-random ranking. Conducted failure analysis on calibration, preference-pair quality, and the limits of LLMs on small structured datasets.
+
+## Attribution
+
+This project is derived from and informed by the original CALM research:
+
+- Paper: *Empowering Many, Biasing a Few: Generalist Credit Scoring through Large Language Models*
+- Original repository: [Dai-shen/CALM](https://github.com/Dai-shen/CALM)
+- Original CALM-7B model and datasets remain subject to their respective licenses and terms.
+
+This repository does not claim authorship of the original CALM paper, benchmark, model, or upstream dataset collection.
 
 ## Disclaimer
-This project is provided for **academic and educational purposes** only. We do not take responsibility for any issues, risks, or adverse consequences that may arise from the use of this project.
 
-## Citation
-If our project has been helpful for your work, please cite as follows:
-```
-@misc{feng2023empowering,
-      title={Empowering Many, Biasing a Few: Generalist Credit Scoring through Large Language Models}, 
-      author={Duanyu Feng and Yongfu Dai and Jimin Huang and Yifang Zhang and Qianqian Xie and Weiguang Han and Alejandro Lopez-Lira and Hao Wang},
-      year={2023},
-      eprint={2310.00566},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG}
-}
-```
-
-## License
-CALM is licensed under [MIT]. For more details, please see the [MIT](./LICENSE) file.
+This project is for research, education, and portfolio demonstration only. It must not be used to make real credit, insurance, employment, or other high-impact decisions. The reported experiments are not production validation, regulatory approval, or evidence of fairness.
