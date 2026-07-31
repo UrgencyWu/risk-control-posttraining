@@ -1,5 +1,15 @@
 # Risk-Control Post-Training for Large Language Models
 
+<p align="center">
+  <a href="./README.md"><strong>English</strong></a>
+  &nbsp;·&nbsp;
+  <a href="./README.zh-CN.md">简体中文</a>
+  &nbsp;·&nbsp;
+  <a href="./docs/index.html">Interactive showcase / 交互式展示</a>
+</p>
+
+> The interactive showcase is a static GitHub Pages site with bilingual controls and explorable frozen metrics. See [`docs/SHOWCASE.md`](./docs/SHOWCASE.md) to publish it from this repository.
+
 An end-to-end applied research project on **cost-sensitive credit-risk classification with large language models**, covering deterministic data construction, classical and LLM baselines, LoRA supervised fine-tuning, preference optimization, decision-threshold selection, and failure-mechanism analysis.
 
 This repository is an independent extension of the open-source [CALM project](https://github.com/Dai-shen/CALM). CALM supplies the original financial-risk task context and public datasets; this project rebuilds the experimental pipeline around a newer Qwen model and evaluates whether post-training adds value over a strong conventional baseline.
