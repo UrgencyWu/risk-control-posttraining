@@ -7,6 +7,7 @@ from sklearn.metrics import (
     roc_auc_score, average_precision_score,
     brier_score_loss, log_loss, confusion_matrix
 )
+from src.evaluation.metrics import select_cost_threshold
 
 def load(path):
     with open(path) as f:
@@ -22,12 +23,7 @@ def compute_all(gt, scores, preds):
     }
 
 def find_best_threshold(scores, gts, fn=5, fp=1):
-    best_t, best_c = 0.5, float("inf")
-    for t in np.arange(0.05, 0.96, 0.05):
-        preds = (np.array(scores) >= t).astype(int)
-        c = sum(fn if g==1 and p==0 else (fp if g==0 and p==1 else 0) for g,p in zip(gts,preds))
-        if c < best_c: best_c = c; best_t = t
-    return best_t, best_c
+    return select_cost_threshold(scores, gts, fn_cost=fn, fp_cost=fp)
 
 models = {
     "SFT_seed7": "outputs/sft/german_sft_seed7",

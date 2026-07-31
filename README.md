@@ -1,5 +1,15 @@
 # Risk-Control Post-Training for Large Language Models
 
+<p align="center">
+  <a href="./README.md"><strong>English</strong></a>
+  &nbsp;·&nbsp;
+  <a href="./README.zh-CN.md">简体中文</a>
+  &nbsp;·&nbsp;
+  <a href="./docs/index.html">Interactive showcase / 交互式展示</a>
+</p>
+
+> The interactive showcase is a static GitHub Pages site with bilingual controls and explorable frozen metrics. See [`docs/SHOWCASE.md`](./docs/SHOWCASE.md) to publish it from this repository.
+
 An end-to-end applied research project on **cost-sensitive credit-risk classification with large language models**, covering deterministic data construction, classical and LLM baselines, LoRA supervised fine-tuning, preference optimization, decision-threshold selection, and failure-mechanism analysis.
 
 This repository is an independent extension of the open-source [CALM project](https://github.com/Dai-shen/CALM). CALM supplies the original financial-risk task context and public datasets; this project rebuilds the experimental pipeline around a newer Qwen model and evaluates whether post-training adds value over a strong conventional baseline.
@@ -21,7 +31,7 @@ This repository is an independent extension of the open-source [CALM project](ht
 | DPO and SimPO | **Run; target not achieved** | Six principal variants failed to exceed SFT and showed label-prior or decision collapse |
 | Cost-sensitive SFT | **Run; target not achieved** | Cost weighting degraded ranking and collapsed predictions toward high risk |
 | Anchored DPO / Risk-DPO | **Incomplete or terminated** | Pilot exposed validation-split and device-placement failures; no positive performance claim is made |
-| Final C7 evaluation and log-probability audit | **Implemented and verified** | Consolidated metrics, calibration measures, confusion matrices, and mechanism evidence are public |
+| Final C7 evaluation and log-probability audit | **Implemented and verified** | CPU-only regeneration from frozen validation/test prediction artifacts, calibration measures, confusion matrices, and mechanism evidence are public |
 
 The repository contains source code, processed datasets, shell entry points, predictions, metrics, training logs, adapter metadata, and research reports. Large model and LoRA weight binaries are intentionally excluded.
 
@@ -96,7 +106,7 @@ The unified evaluator implements:
 - NLL, Brier score, and expected calibration error;
 - confusion matrices;
 - configurable false-negative and false-positive cost;
-- validation-only threshold selection.
+- validation-only threshold selection, with a regression test that prevents test-set operating-point tuning.
 
 The business objective is:
 
@@ -106,7 +116,7 @@ Cost = 5 × false negatives + 1 × false positives
 
 A false negative means a genuinely high-risk applicant is classified as low risk. The 5:1 cost ratio intentionally favors high-risk recall, but ranking and calibration metrics remain necessary to detect trivial all-high-risk behavior.
 
-Primary evidence: [`src/evaluation/metrics.py`](./src/evaluation/metrics.py), [`src/evaluation/c7_final.py`](./src/evaluation/c7_final.py), and [`outputs/c7_final_metrics.json`](./outputs/c7_final_metrics.json).
+Primary evidence: [`docs/EVALUATION_PROTOCOL.md`](./docs/EVALUATION_PROTOCOL.md), [`src/evaluation/metrics.py`](./src/evaluation/metrics.py), [`src/evaluation/c7_final.py`](./src/evaluation/c7_final.py), and [`outputs/c7_final_metrics.json`](./outputs/c7_final_metrics.json).
 
 ### 3. LoRA supervised fine-tuning
 
@@ -149,17 +159,17 @@ Primary evidence: [`src/training/build_preference.py`](./src/training/build_pref
 
 ## Final Results
 
-All headline metrics below use the consolidated C7 artifact, [`outputs/c7_final_metrics.json`](./outputs/c7_final_metrics.json), as the source of truth. Earlier stage reports may contain slightly different zero-shot costs because they were produced before final evaluator consolidation.
+All headline metrics below use the consolidated C7 artifact, [`outputs/c7_final_metrics.json`](./outputs/c7_final_metrics.json), as the source of truth. C7 derives each operating point only from its committed validation predictions, then applies it to committed test predictions; it never reruns model inference or searches thresholds on test labels. This corrected the earlier zero-shot and multi-SFT operating-point reports. See [`docs/EVALUATION_PROTOCOL.md`](./docs/EVALUATION_PROTOCOL.md).
 
 ### German Credit test set, N = 200
 
 | Model | ROC-AUC | PR-AUC | NLL | Brier | ECE | Cost | High-risk recall | Low-risk recall |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | Majority | 0.500 | 0.325 | 8.980 | 0.325 | 0.325 | 325 | 0.000 | 1.000 |
-| Qwen3.5-4B zero-shot | 0.515 | 0.348 | 1.720 | 0.570 | 0.593 | 135 | 1.000 | 0.000 |
+| Qwen3.5-4B zero-shot | 0.515 | 0.348 | 1.720 | 0.570 | 0.593 | 140 | 0.985 | 0.000 |
 | **Logistic Regression** | **0.757** | **0.596** | **0.552** | **0.182** | 0.076 | 113 | 0.815 | 0.607 |
 | Qwen3.5-4B SFT seed 7 | 0.747 | 0.555 | 0.556 | 0.190 | 0.070 | **100** | 0.939 | 0.407 |
-| Qwen3.5-4B multi-SFT, German subset | 0.721 | 0.533 | 0.567 | 0.194 | **0.060** | 104 | 0.954 | 0.341 |
+| Qwen3.5-4B multi-SFT, German subset | 0.720 | 0.527 | 0.568 | 0.194 | **0.059** | 142 | 0.769 | 0.504 |
 
 ### SFT stability across seeds
 
@@ -189,7 +199,7 @@ Relative to Qwen3.5-4B zero-shot, the frozen SFT checkpoint improves:
 - ROC-AUC from 0.515 to 0.747;
 - PR-AUC from 0.348 to 0.555;
 - NLL from 1.720 to 0.556;
-- final asymmetric cost from 135 to 100 under a validation-selected threshold.
+- final asymmetric cost from 140 to 100 under a validation-selected threshold.
 
 This verifies that a compact LLM can learn meaningful task discrimination from structured credit records after supervised adaptation.
 
@@ -234,7 +244,7 @@ Representative outcomes include:
 
 ### Multi-dataset SFT
 
-German-Australian SFT reaches overall ROC-AUC 0.830 and Australian ROC-AUC 0.938, showing that the shared pipeline can learn across datasets. However, German ROC-AUC falls from 0.747 to 0.721, so the additional data does not improve the primary German benchmark.
+German-Australian SFT reaches overall ROC-AUC 0.830 and Australian ROC-AUC 0.938, showing that the shared pipeline can learn across datasets. However, the frozen German prediction artifact reaches ROC-AUC 0.720, below the single-dataset SFT's 0.747, so the additional data does not improve the primary German benchmark.
 
 ### Cost-sensitive SFT, Anchored DPO, and Risk-DPO
 
@@ -280,12 +290,16 @@ Primary evidence: [`src/evaluation/c5v3_audit.py`](./src/evaluation/c5v3_audit.p
 risk-control-posttraining/
 ├── convert_german.py                  # Deterministic German converter and validation
 ├── configs/                           # Experiment configuration artifacts
+├── .github/workflows/quality.yml       # CPU-only data, metric, and leakage-regression CI
 ├── data/processed/                    # Normalized, SFT, and preference datasets
 ├── docs/                              # Data contracts, audit, plans, and progress report
 ├── outputs/baselines/                 # Baseline predictions
 ├── outputs/sft/                       # SFT logs, predictions, and adapter metadata
 ├── outputs/dpo/                       # DPO/SimPO and pilot outputs
 ├── outputs/c7_final_metrics.json      # Final consolidated evaluation
+├── requirements-eval.txt               # Lightweight reproduction dependencies
+├── requirements-train.txt              # GPU training/inference dependencies
+├── tests/                              # Dataset and leakage-regression tests
 ├── reports/baseline_report.md         # Stage-C2 baseline report
 ├── scripts/                           # Slurm and evaluation entry points
 ├── src/baselines/                     # Majority, Logistic Regression, zero-shot Qwen
@@ -301,13 +315,43 @@ Recommended starting points:
 4. [`src/training/dpo_train.py`](./src/training/dpo_train.py) — DPO/SimPO implementation;
 5. [`src/evaluation/c5v3_audit.py`](./src/evaluation/c5v3_audit.py) — label-prior collapse audit.
 
-## Reproduction Notes
+## Quick Start
 
-- The final reported model is `Qwen3.5-4B`.
-- Training scripts currently reference an environment-specific local model path such as `/data/share/model/Qwen3.5-4B`; adapt this path before rerunning.
-- The repository excludes large `adapter_model.safetensors` and tokenizer binaries, but retains training logs, adapter configurations, predictions, processed data, and evaluation outputs.
-- Some early planning artifacts still mention `Qwen2.5-1.5B`; they are historical remnants and are **not** the source of the final reported metrics.
-- Headline results should be read from `outputs/c7_final_metrics.json` and the final sections of `docs/Progress_Report.md`.
+The published metrics can be reproduced without a GPU or model weights because
+the exact validation and test prediction artifacts are version controlled.
+
+```bash
+git clone <repository-url>
+cd risk-control-posttraining
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip -r requirements-eval.txt
+python -m unittest discover -s tests -v
+python -m src.evaluation.c7_final --output /tmp/c7_final_metrics.json
+cmp outputs/c7_final_metrics.json /tmp/c7_final_metrics.json
+```
+
+For the full GPU workflow, install `requirements-train.txt`, obtain the
+excluded base model and LoRA adapter weights under their original terms, and
+provide the local model path explicitly:
+
+```bash
+export RISK_CONTROL_MODEL_ID=/absolute/path/to/Qwen3.5-4B
+python -m src.baselines.majority
+python -m src.baselines.logistic_regression
+python -m src.baselines.qwen_zero_shot
+sbatch scripts/sft_slurm.sh
+sbatch scripts/dpo_train.sh
+sbatch scripts/simpo_train.sh
+```
+
+`scripts/sft_multi.sh` runs the German-Australian transfer experiment. The
+Slurm scripts use the activated environment's `python3` by default; set
+`PYTHON_BIN` to choose another interpreter. Training and inference are not
+expected to reproduce bit-for-bit without the original hardware, model
+revision, and excluded weight files, while the published C7 evaluation is
+fully artifact-reproducible. Historical planning documents may mention an
+earlier Qwen version; current runnable configurations use `Qwen3.5-4B`.
 
 ## Skills Demonstrated
 

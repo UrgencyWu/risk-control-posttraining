@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader, Dataset
 # ============================================================
 # Config
 # ============================================================
-MODEL_ID = "/data/share/model/Qwen3.5-4B"
+MODEL_ID = os.environ.get("RISK_CONTROL_MODEL_ID", "/data/share/model/Qwen3.5-4B")
 SFT_ADAPTER = "outputs/sft/german_multi/best_adapter"
 SFT_DIR = "data/processed/multi/combined/sft"
 INFER_DIR = "outputs/preference_inference"

@@ -8,14 +8,16 @@
 #SBATCH --output=logs/simpo_%j.out
 #SBATCH --error=logs/simpo_%j.err
 
-source /home/wushaohua/miniconda3/etc/profile.d/conda.sh
-conda activate qwen9B
+set -euo pipefail
+
+REPOSITORY_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 echo "=== C5: SimPO Training ==="
 echo "Job ID: $SLURM_JOB_ID  CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
 nvidia-smi -L
 echo ""
 
+cd "$REPOSITORY_ROOT"
 mkdir -p logs outputs/dpo
-cd /home/wushaohua/data/risk-control-posttraining
-python3 src/training/dpo_train.py --mode simpo --seed 42
+"$PYTHON_BIN" -m src.training.dpo_train --mode simpo --seed 42

@@ -9,7 +9,7 @@ import json, torch, numpy as np, argparse, hashlib
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel
 
-MODEL_ID = "/data/share/model/Qwen3.5-4B"
+MODEL_ID = os.environ.get("RISK_CONTROL_MODEL_ID", "/data/share/model/Qwen3.5-4B")
 ADAPTER_DIR = "outputs/sft/german_multi/best_adapter"
 SFT_DIR = "data/processed/multi/combined/sft"
 OUT_DIR = "outputs/preference_inference"

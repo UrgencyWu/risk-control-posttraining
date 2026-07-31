@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Bilingual interactive showcase for the Risk-Control Post-Training project.">
+    <title>Risk-Control Post-Training | Interactive Showcase</title>
+    <link rel="stylesheet" href="./assets/showcase.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <header class="site-header">
+      <div class="shell nav-row">
+        <a class="brand" href="../README.md" aria-label="Open the project README">
+          <span class="brand-mark" aria-hidden="true">R</span>
+          <span>Risk-Control Post-Training</span>
+        </a>
+        <div class="language-switch" role="group" aria-label="Language / 语言">
+          <button type="button" class="language-button is-active" data-language="en" aria-pressed="true">EN</button>
+          <button type="button" class="language-button" data-language="zh" aria-pressed="false">中文</button>
+        </div>
+      </div>
+    </header>
+
+    <main id="main-content">
+      <section class="hero">
+        <div class="shell hero-grid">
+          <div>
+            <p class="eyebrow" data-i18n="eyebrow">APPLIED LLM POST-TRAINING · CREDIT RISK</p>
+            <h1 data-i18n="heroTitle">Evidence-led post-training, not a benchmark claim.</h1>
+            <p class="hero-copy" data-i18n="heroCopy">An end-to-end study of how LoRA SFT, preference optimization, and validation-only decision rules behave on small tabular credit-risk data.</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="../README.md" data-i18n="readmeLink">Read the technical README</a>
+              <a class="button button-secondary" href="./EVALUATION_PROTOCOL.md" data-i18n="protocolLink">Review the evaluation protocol</a>
+            </div>
+          </div>
+          <aside class="evidence-card" aria-label="Verified outcome summary / 已验证结果摘要">
+            <p class="card-label" data-i18n="evidenceLabel">FROZEN RESULT</p>
+            <p class="evidence-number">0.515 <span>→</span> 0.747</p>
+            <p class="evidence-caption" data-i18n="evidenceCaption">Qwen3.5-4B zero-shot to LoRA SFT ROC-AUC</p>
+            <dl class="evidence-facts">
+              <div><dt data-i18n="factCost">SFT test Cost</dt><dd>100</dd></div>
+              <div><dt data-i18n="factThreshold">Threshold source</dt><dd data-i18n="factThresholdValue">Validation only</dd></div>
+            </dl>
+          </aside>
+        </div>
+      </section>
+
+      <section class="shell section" aria-labelledby="results-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow" data-i18n="resultsEyebrow">GERMAN CREDIT · TEST N = 200</p>
+            <h2 id="results-heading" data-i18n="resultsTitle">Explore the frozen final metrics</h2>
+          </div>
+          <label class="metric-control" for="metric-select">
+            <span data-i18n="metricLabel">Compare by</span>
+            <select id="metric-select">
+              <option value="roc_auc">ROC-AUC</option>
+              <option value="pr_auc">PR-AUC</option>
+              <option value="cost">Cost</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="chart-layout">
+          <figure class="chart-figure" aria-labelledby="chart-caption">
+            <svg id="metric-chart" class="metric-chart" role="img" aria-describedby="chart-caption"></svg>
+            <figcaption id="chart-caption" class="chart-caption" data-i18n="chartCaption">Select a metric to compare the committed prediction artifacts. Higher is better for AUC metrics; lower is better for Cost.</figcaption>
+          </figure>
+          <aside class="selection-panel" aria-live="polite">
+            <p class="card-label" data-i18n="selectionLabel">SELECTED MODEL</p>
+            <h3 id="selected-model-name">Qwen3.5-4B LoRA SFT · seed 7</h3>
+            <p id="selected-model-role" class="selection-role"></p>
+            <dl id="selected-model-metrics" class="selection-metrics"></dl>
+            <p id="selected-model-note" class="selection-note"></p>
+          </aside>
+        </div>
+
+        <div id="model-buttons" class="model-buttons" role="list" aria-label="Choose a model / 选择模型"></div>
+        <div class="table-wrap">
+          <table>
+            <caption id="metrics-caption" class="sr-only">Frozen C7 final metrics for all evaluated models</caption>
+            <thead>
+              <tr>
+                <th scope="col" data-i18n="tableModel">Model</th>
+                <th scope="col">ROC-AUC</th>
+                <th scope="col">PR-AUC</th>
+                <th scope="col">NLL</th>
+                <th scope="col">Brier</th>
+                <th scope="col">ECE</th>
+                <th scope="col">Cost</th>
+                <th scope="col" data-i18n="tableThreshold">Threshold</th>
+              </tr>
+            </thead>
+            <tbody id="metric-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section section-tinted">
+        <div class="shell">
+          <div class="section-heading compact-heading">
+            <div>
+              <p class="eyebrow" data-i18n="pathEyebrow">EXPERIMENT PATH</p>
+              <h2 data-i18n="pathTitle">A complete result includes its boundaries</h2>
+            </div>
+            <p class="section-intro" data-i18n="pathCopy">The project preserves successful adaptation, strong baselines, and negative preference-optimization results as one evidence chain.</p>
+          </div>
+          <ol id="experiment-path" class="experiment-path"></ol>
+        </div>
+      </section>
+
+      <section class="shell section evidence-section" aria-labelledby="protocol-heading">
+        <div class="protocol-copy">
+          <p class="eyebrow" data-i18n="protocolEyebrow">EVALUATION GUARDRAIL</p>
+          <h2 id="protocol-heading" data-i18n="protocolTitle">The operating point is frozen before test evaluation.</h2>
+          <p data-i18n="protocolCopy">Every threshold is selected by minimizing 5 × false negatives + 1 × false positives on validation predictions. The committed test prediction artifact is then evaluated once at that frozen threshold.</p>
+          <a class="text-link" href="./EVALUATION_PROTOCOL.md" data-i18n="protocolReadMore">Read the complete protocol →</a>
+        </div>
+        <div id="protocol-diagram" class="protocol-diagram" role="img" aria-label="Validation predictions select a threshold, which is frozen and applied to test predictions for final metrics.">
+          <div class="flow-node" data-i18n="flowValid">Validation predictions</div>
+          <div class="flow-arrow" aria-hidden="true">→</div>
+          <div class="flow-node flow-node-accent" data-i18n="flowThreshold">Freeze threshold</div>
+          <div class="flow-arrow" aria-hidden="true">→</div>
+          <div class="flow-node" data-i18n="flowTest">Test metrics once</div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="shell footer-row">
+        <p data-i18n="footerText">Research, education, and portfolio demonstration only. Not for high-impact decisions.</p>
+        <a id="footer-language-link" href="../README.zh-CN.md" data-i18n="footerLanguage">中文 README</a>
+      </div>
+    </footer>
+
+    <script id="showcase-data" type="application/json">
+{
+  "models": [
+    {"id":"majority","name":"Majority","roc_auc":0.5,"pr_auc":0.325,"nll":8.9801,"brier":0.325,"ece":0.325,"cost":325,"threshold":0.05,"high_risk_recall":0.0,"low_risk_recall":1.0},
+    {"id":"zero-shot","name":"Qwen3.5-4B zero-shot","roc_auc":0.5152,"pr_auc":0.3481,"nll":1.7197,"brier":0.5696,"ece":0.5932,"cost":140,"threshold":0.8,"high_risk_recall":0.9846,"low_risk_recall":0.0},
+    {"id":"logistic-regression","name":"Logistic Regression","roc_auc":0.7566,"pr_auc":0.5957,"nll":0.5521,"brier":0.1815,"ece":0.0755,"cost":113,"threshold":0.2,"high_risk_recall":0.8154,"low_risk_recall":0.6074},
+    {"id":"sft-seed7","name":"Qwen3.5-4B LoRA SFT · seed 7","roc_auc":0.7471,"pr_auc":0.555,"nll":0.556,"brier":0.1903,"ece":0.0696,"cost":100,"threshold":0.15,"high_risk_recall":0.9385,"low_risk_recall":0.4074},
+    {"id":"multi-sft","name":"Qwen3.5-4B multi-SFT · German","roc_auc":0.7202,"pr_auc":0.527,"nll":0.5681,"brier":0.1939,"ece":0.0593,"cost":142,"threshold":0.25,"high_risk_recall":0.7692,"low_risk_recall":0.5037}
+  ]
+}
+    </script>
+    <script src="./assets/showcase.js"></script>
+  </body>
+</html>

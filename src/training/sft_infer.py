@@ -1,13 +1,13 @@
-"""C3: SFT inference — load trained LoRA adapter, evaluate on valid+test."""
+"""C3: SFT inference — LoRA evaluation with first-token class scoring."""
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
 import json, torch, numpy as np
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel
-from src.evaluation.metrics import compute_metrics, generate_metrics_table
+from src.evaluation.metrics import compute_metrics, generate_metrics_table, select_cost_threshold
 
-MODEL_ID = "/data/share/model/Qwen3.5-4B"
+MODEL_ID = os.environ.get("RISK_CONTROL_MODEL_ID", "/data/share/model/Qwen3.5-4B")
 ADAPTER_DIR = "outputs/sft/german_sft_seed10086/best_adapter"
 SFT_DIR = "data/processed/german/sft"
 OUT_DIR = "outputs/sft/german_sft_seed10086"
@@ -32,6 +32,7 @@ for split in ("valid", "test"):
         with torch.no_grad():
             logits = model(**inputs).logits[0,-1,:]
             lp = torch.nn.functional.log_softmax(logits, dim=-1)
+        # This compares the first token of the two labels, not full-sequence likelihood.
         s_low  = lp[tokenizer.encode("low", add_special_tokens=False)[0]].item()
         s_high = lp[tokenizer.encode("high", add_special_tokens=False)[0]].item()
         p_high = np.exp(s_high)/(np.exp(s_low)+np.exp(s_high))
@@ -51,12 +52,7 @@ for split in ("valid", "test"):
     if split == "valid":
         scores = np.array([r["risk_score"] for r in results])
         gts = np.array([r["ground_truth"] for r in results])
-        best_t, best_c = 0.5, float("inf")
-        for t in np.arange(0.05, 0.96, 0.05):
-            preds = (scores >= t).astype(int)
-            c = sum(5 if g==1 and p==0 else (1 if g==0 and p==1 else 0) for g,p in zip(gts,preds))
-            if c < best_c:
-                best_c = c; best_t = t
+        best_t, best_c = select_cost_threshold(scores, gts)
         print(f"  Best threshold (valid): {best_t:.2f}, cost={best_c}")
 
     # Apply threshold for test

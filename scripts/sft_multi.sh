@@ -8,18 +8,20 @@
 #SBATCH --output=logs/sft_multi_%j.out
 #SBATCH --error=logs/sft_multi_%j.err
 
-source /home/wushaohua/miniconda3/etc/profile.d/conda.sh
-conda activate qwen9B
+set -euo pipefail
+
+REPOSITORY_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 echo "=== C5v3-A: Multi-dataset SFT (German + Australian) ==="
 nvidia-smi -L
 
+cd "$REPOSITORY_ROOT"
 mkdir -p logs outputs/sft
-cd /home/wushaohua/data/risk-control-posttraining
-python3 src/training/sft_multi.py
+"$PYTHON_BIN" -m src.training.sft_multi
 
 echo "--- Inference ---"
 ADAPTER_DIR=outputs/sft/german_multi
-python3 src/training/pref_infer.py --adapter "$ADAPTER_DIR/best_adapter" --output "$ADAPTER_DIR"
+"$PYTHON_BIN" -m src.training.pref_infer --adapter "$ADAPTER_DIR/best_adapter" --output "$ADAPTER_DIR"
 
 echo "--- Done ---"

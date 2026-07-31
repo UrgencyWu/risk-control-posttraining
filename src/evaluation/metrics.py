@@ -12,6 +12,12 @@ from sklearn.metrics import (
 )
 
 
+# All reported operating points are chosen on the validation split.  Keep this
+# grid in one place so baseline generation and evaluation-only reporting cannot
+# silently use different search rules.
+DEFAULT_THRESHOLD_GRID = tuple(round(value, 2) for value in np.arange(0.05, 0.96, 0.05))
+
+
 def load_predictions(path):
     """Load prediction JSONL file."""
     records = []
@@ -51,6 +57,54 @@ def compute_cost(ground_truth, prediction, fn_cost=5, fp_cost=1):
             total_cost += fp_cost
             fp_count += 1
     return total_cost, fn_count, fp_count
+
+
+def select_cost_threshold(scores, ground_truth, fn_cost=5, fp_cost=1,
+                          threshold_grid=DEFAULT_THRESHOLD_GRID):
+    """Choose a decision threshold from a *validation* split only.
+
+    This function deliberately accepts validation scores and labels as separate
+    arguments.  Test evaluation must call :func:`apply_threshold` with a
+    threshold already returned here; it must never invoke this selector with
+    test labels.
+    """
+    scores = np.asarray(scores, dtype=float)
+    ground_truth = np.asarray(ground_truth, dtype=int)
+    thresholds = tuple(float(threshold) for threshold in threshold_grid)
+
+    if scores.ndim != 1 or ground_truth.ndim != 1 or len(scores) != len(ground_truth):
+        raise ValueError("scores and ground_truth must be one-dimensional arrays of equal length")
+    if len(scores) == 0:
+        raise ValueError("cannot select a threshold from an empty validation split")
+    if not np.isfinite(scores).all():
+        raise ValueError("threshold selection requires finite validation scores")
+    if not set(np.unique(ground_truth)).issubset({0, 1}):
+        raise ValueError("ground_truth must contain binary labels encoded as 0 and 1")
+    if not thresholds or any(not 0.0 < threshold < 1.0 for threshold in thresholds):
+        raise ValueError("threshold_grid must contain values strictly between 0 and 1")
+
+    best_threshold = thresholds[0]
+    best_cost = float("inf")
+    for threshold in thresholds:
+        predictions = apply_threshold(scores, threshold)
+        cost, _, _ = compute_cost(ground_truth, predictions, fn_cost, fp_cost)
+        # Strict comparison deterministically keeps the lowest threshold on a tie.
+        if cost < best_cost:
+            best_threshold = threshold
+            best_cost = cost
+    return best_threshold, int(best_cost)
+
+
+def apply_threshold(scores, threshold):
+    """Turn finite risk scores into high-risk decisions using a frozen threshold."""
+    scores = np.asarray(scores, dtype=float)
+    if scores.ndim != 1:
+        raise ValueError("scores must be one-dimensional")
+    if not np.isfinite(scores).all():
+        raise ValueError("applying a threshold requires finite scores")
+    if not 0.0 < float(threshold) < 1.0:
+        raise ValueError("threshold must be strictly between 0 and 1")
+    return (scores >= float(threshold)).astype(int)
 
 
 def compute_metrics(ground_truth, predictions, risk_scores=None):

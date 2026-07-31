@@ -8,8 +8,10 @@
 #SBATCH --output=logs/sft_%j.out
 #SBATCH --error=logs/sft_%j.err
 
-source /home/wushaohua/miniconda3/etc/profile.d/conda.sh
-conda activate qwen9B
+set -euo pipefail
+
+REPOSITORY_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 echo "=== C3: LoRA SFT — German Credit (seeds 42, 7) ==="
 echo "Job ID: $SLURM_JOB_ID"
@@ -20,7 +22,7 @@ which python3
 nvidia-smi -L
 echo ""
 
-mkdir -p logs
+mkdir -p "$REPOSITORY_ROOT/logs"
 
-cd /home/wushaohua/data/risk-control-posttraining
-python3 src/training/sft_lora_manual.py
+cd "$REPOSITORY_ROOT"
+"$PYTHON_BIN" -m src.training.sft_lora_manual

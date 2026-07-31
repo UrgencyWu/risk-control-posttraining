@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
 import json, numpy as np
 from sklearn.metrics import confusion_matrix, recall_score
+from src.evaluation.metrics import select_cost_threshold
 
 SEEDS = [10086, 42, 7]
 OUT_DIR = "outputs/sft"
@@ -20,14 +21,7 @@ def compute_cost(gts, preds, fn=5, fp=1):
     return c
 
 def find_best_threshold(scores, gts):
-    best_t, best_c = 0.5, float("inf")
-    for t in np.arange(0.05, 0.96, 0.05):
-        preds = (np.array(scores) >= t).astype(int)
-        c = compute_cost(gts, preds)
-        if c < best_c:
-            best_c = c
-            best_t = t
-    return best_t, best_c
+    return select_cost_threshold(scores, gts)
 
 print("=" * 70)
 print("C3 Close-out: Per-seed Evaluation (threshold from VALID only)")

@@ -9,7 +9,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel, LoraConfig, get_peft_model
 from torch.utils.data import DataLoader, Dataset
 
-MODEL_ID = "/data/share/model/Qwen3.5-4B"
+MODEL_ID = os.environ.get("RISK_CONTROL_MODEL_ID", "/data/share/model/Qwen3.5-4B")
 SFT_ADAPTER = "outputs/sft/german_sft_seed7/best_adapter"
 SFT_DIR = "data/processed/german/sft"
 OUT_BASE = "outputs/dpo"
