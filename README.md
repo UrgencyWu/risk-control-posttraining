@@ -8,158 +8,49 @@
   <a href="./docs/index.html">Interactive showcase / 交互式展示</a>
 </p>
 
-> The interactive showcase is a static GitHub Pages site with bilingual controls and explorable frozen metrics. See [`docs/SHOWCASE.md`](./docs/SHOWCASE.md) to publish it from this repository.
+## Research Question
 
-An end-to-end applied research project on **cost-sensitive credit-risk classification with large language models**, covering deterministic data construction, classical and LLM baselines, LoRA supervised fine-tuning, preference optimization, decision-threshold selection, and failure-mechanism analysis.
+**Can post-training make a compact instruction-tuned LLM useful for cost-sensitive credit-risk classification, and where does it stop adding value relative to a strong statistical baseline?**
 
-This repository is an independent extension of the open-source [CALM project](https://github.com/Dai-shen/CALM). CALM supplies the original financial-risk task context and public datasets; this project rebuilds the experimental pipeline around a newer Qwen model and evaluates whether post-training adds value over a strong conventional baseline.
+The study evaluates `Qwen3.5-4B` on German Credit, with Australian Credit used for transfer validation. It separates representation learning from decision-threshold selection and tests whether SFT, DPO, or SimPO improves sample-level risk ranking rather than merely shifting the global probability of the two labels.
 
-> **Final experimental model:** `Qwen3.5-4B`  
-> **Primary task:** binary credit-risk classification  
-> **Primary benchmark:** German Credit; Australian Credit is used for multi-dataset validation  
-> **Core result:** LoRA SFT substantially improves the zero-shot LLM and approaches Logistic Regression, while label-level DPO/SimPO does not improve risk ranking and repeatedly causes class-prior collapse.
+## Four Quantitative Findings
 
-## Project Status
+| Finding | Frozen result | Interpretation |
+|---|---:|---|
+| **LoRA SFT learns useful risk ranking** | ROC-AUC `0.515 → 0.747` (**+0.232**) | SFT converts a near-random zero-shot ranking into a competitive risk model. |
+| **Logistic Regression remains the honest ranking reference** | `0.757` vs SFT `0.747` | The remaining ROC-AUC gap is `0.010`; the project claims competitiveness, not stable superiority. |
+| **Cost-sensitive operating-point selection matters** | best SFT Cost `100`, zero-shot `140`, Logistic Regression `113` | The best frozen SFT checkpoint lowers asymmetric test cost, but the three-seed SFT mean is `123 ± 16`, so a single favorable run is not treated as decisive. |
+| **Label-level preference optimization reaches a method boundary** | **6 / 6** principal DPO/SimPO variants fail to exceed SFT | Oracle, hard-pair, single-dataset, and multi-dataset runs produce class-prior shifts or decision collapse instead of better sample-level ranking. |
+
+## Project Contributions
+
+1. **Reproducible post-training pipeline.** Defined a traceable risk-data schema, deterministic train/validation/test splits, ChatML conversion, preference records, manifests, and SHA-256 reproducibility checks.
+2. **Leakage-safe, cost-sensitive evaluation.** Compared classical and LLM baselines with ROC-AUC, PR-AUC, calibration metrics, confusion matrices, and thresholds selected only from committed validation predictions.
+3. **Verified SFT result with honest baseline comparison.** Ran three German Credit seeds and a German–Australian transfer experiment, showing that LoRA SFT is effective while preserving the stronger Logistic Regression ranking result.
+4. **Mechanism-level negative result for DPO/SimPO.** Ran six principal preference-optimization variants and used log-probability audits to connect their failures to global label-prior movement rather than improved conditional risk separation.
+
+This repository is an independent extension of the open-source [CALM project](https://github.com/Dai-shen/CALM). CALM supplies the original task context and public datasets; this project rebuilds the experimental pipeline around `Qwen3.5-4B` and does not claim authorship of the original CALM paper, model, benchmark, or dataset collection.
+
+## Evidence and Implementation Status
 
 | Workstream | Status | Verified outcome |
 |---|---|---|
 | Data schema and preprocessing | **Implemented and verified** | Deterministic normalized and ChatML datasets, frozen splits, manifests, validation checks, and SHA-256 reproducibility |
 | Majority / Logistic Regression / Qwen zero-shot baselines | **Implemented and verified** | Unified cost-sensitive evaluation on the frozen German test set |
-| Qwen3.5-4B LoRA SFT | **Implemented and verified** | Three German seeds plus a German-Australian multi-dataset run |
-| Validation-selected decision threshold | **Implemented and verified** | Thresholds selected on validation data under `Cost = 5 × FN + 1 × FP`; no test-set threshold tuning |
-| Oracle and hard preference construction | **Implemented and verified** | Single- and multi-dataset preference datasets with frozen metadata |
-| DPO and SimPO | **Run; target not achieved** | Six principal variants failed to exceed SFT and showed label-prior or decision collapse |
-| Cost-sensitive SFT | **Run; target not achieved** | Cost weighting degraded ranking and collapsed predictions toward high risk |
-| Anchored DPO / Risk-DPO | **Incomplete or terminated** | Pilot exposed validation-split and device-placement failures; no positive performance claim is made |
-| Final C7 evaluation and log-probability audit | **Implemented and verified** | CPU-only regeneration from frozen validation/test prediction artifacts, calibration measures, confusion matrices, and mechanism evidence are public |
+| Qwen3.5-4B LoRA SFT | **Implemented and verified** | Three German seeds plus a German–Australian multi-dataset run |
+| Validation-selected decision threshold | **Implemented and verified** | Thresholds selected under `Cost = 5 × FN + 1 × FP`; no test-set operating-point tuning |
+| Oracle and hard preference construction | **Implemented and verified** | Single- and multi-dataset preference records with frozen metadata |
+| DPO and SimPO | **Run; target not achieved** | Six principal variants fail to exceed SFT and exhibit label-prior or decision collapse |
+| Cost-sensitive SFT | **Run; target not achieved** | Training-time class weighting degrades ranking and pushes predictions toward high risk |
+| Anchored DPO / Risk-DPO | **Incomplete or terminated** | Pilots expose validation-split and device-placement failures; no positive result is claimed |
+| Final C7 evaluation and log-probability audit | **Implemented and verified** | CPU-only regeneration from frozen validation/test prediction artifacts, calibration metrics, confusion matrices, and mechanism evidence |
 
-The repository contains source code, processed datasets, shell entry points, predictions, metrics, training logs, adapter metadata, and research reports. Large model and LoRA weight binaries are intentionally excluded.
-
-## Research Questions
-
-1. Can an instruction-tuned LLM learn risk discrimination from tabular credit records represented as natural-language instructions?
-2. Can SFT or preference optimization improve high-risk recall and asymmetric business cost without destroying sample-level ranking?
-3. When a post-training method fails, is the failure caused by data construction, optimization instability, calibration, or a mismatch between the learning objective and the task?
-
-## Model Roles
-
-The project uses different models and checkpoints for distinct experimental purposes. They should not be treated as interchangeable results.
-
-| Model or checkpoint | Experimental role | Main finding |
-|---|---|---|
-| Majority classifier | Sanity-check lower bound | Obtains 67.5% accuracy from class imbalance but misses every high-risk case; cost 325 |
-| Logistic Regression | Strong non-LLM reference | Best final risk ranking and probability quality: ROC-AUC 0.757, NLL 0.552, cost 113 |
-| Qwen3.5-4B zero-shot | Unadapted LLM baseline | Near-random ranking, severe high-risk over-prediction, and poor calibration |
-| Qwen3.5-4B LoRA SFT, seeds `10086`, `42`, `7` | Primary post-training experiment | Consistently creates useful risk-ranking ability; mean ROC-AUC 0.747, but does not establish stable superiority over Logistic Regression |
-| Qwen3.5-4B SFT seed `7` | Frozen downstream SFT checkpoint | Selected by the predeclared **validation PR-AUC** rule, not by test performance; final test ROC-AUC 0.747 and cost 100 |
-| Qwen3.5-4B multi-dataset SFT | Transfer and data-diversity experiment | Strong combined German-Australian ranking, but negative transfer on German relative to single-dataset SFT |
-| Qwen3.5-4B DPO / SimPO | Preference-optimization stress test | Oracle, hard-pair, and multi-dataset variants all underperform SFT and often collapse toward one label |
-| Cost-sensitive SFT / Anchored DPO / Risk-DPO pilots | Controls for asymmetric weighting and SFT anchoring | Cost weighting degraded ranking; anchored and risk-aware pilots did not yield a valid successful result |
-
-## Implemented and Verified Work
-
-### 1. Data governance and reproducible preprocessing
-
-The project defines a multi-layer data protocol:
-
-```text
-Raw data
-  → Normalized risk schema
-  → SFT ChatML records
-  → Preference records
-  → Evaluation records
-```
-
-Implemented components include:
-
-- audit of 10 financial-risk datasets across credit scoring, fraud detection, financial distress, and claim analysis;
-- unified `risk_label`, `task_type`, `target_type`, and `original_label` traceability;
-- protected-attribute extraction where available;
-- description-style and table-style prompt construction;
-- deterministic train/validation/test splitting;
-- dataset manifests, schema validation, and repeated SHA-256 checks.
-
-For German Credit, the frozen pipeline contains:
-
-- 1,000 records and 20 input features: 13 categorical and 7 numerical;
-- original label mapping `1/2 → 0/1`;
-- deterministic `700/100/200` train/validation/test split with seed `10086`;
-- normalized and ChatML SFT outputs;
-- V1–V7 validation checks;
-- identical output hashes across repeated conversion runs.
-
-For multi-dataset validation, German and Australian Credit are unified into:
-
-- 1,182 training records;
-- 169 validation records;
-- 339 test records.
-
-Primary evidence: [`convert_german.py`](./convert_german.py), [`data/processed/`](./data/processed), [`docs/RiskDataset_Schema.md`](./docs/RiskDataset_Schema.md), and [`docs/Progress_Report.md`](./docs/Progress_Report.md).
-
-### 2. Baselines and cost-sensitive evaluation
-
-The unified evaluator implements:
-
-- Accuracy, Balanced Accuracy, and Macro-F1;
-- high-risk and low-risk recall;
-- ROC-AUC and PR-AUC;
-- NLL, Brier score, and expected calibration error;
-- confusion matrices;
-- configurable false-negative and false-positive cost;
-- validation-only threshold selection, with a regression test that prevents test-set operating-point tuning.
-
-The business objective is:
-
-```text
-Cost = 5 × false negatives + 1 × false positives
-```
-
-A false negative means a genuinely high-risk applicant is classified as low risk. The 5:1 cost ratio intentionally favors high-risk recall, but ranking and calibration metrics remain necessary to detect trivial all-high-risk behavior.
-
-Primary evidence: [`docs/EVALUATION_PROTOCOL.md`](./docs/EVALUATION_PROTOCOL.md), [`src/evaluation/metrics.py`](./src/evaluation/metrics.py), [`src/evaluation/c7_final.py`](./src/evaluation/c7_final.py), and [`outputs/c7_final_metrics.json`](./outputs/c7_final_metrics.json).
-
-### 3. LoRA supervised fine-tuning
-
-The final SFT experiments use `Qwen3.5-4B` with:
-
-- response-only causal-LM loss;
-- LoRA rank 16, alpha 32, dropout 0.05;
-- attention and MLP projection targets;
-- five training epochs;
-- three random seeds on German Credit;
-- multi-GPU execution on 2 × RTX PRO 6000 Blackwell GPUs;
-- validation-based checkpoint and threshold decisions.
-
-SFT is the only post-training method in this project that consistently creates useful risk discrimination.
-
-Primary evidence: [`src/training/sft_lora_manual.py`](./src/training/sft_lora_manual.py), [`src/training/sft_multi.py`](./src/training/sft_multi.py), [`outputs/sft/`](./outputs/sft), and [`scripts/sft_slurm.sh`](./scripts/sft_slurm.sh).
-
-### 4. Preference construction and optimization experiments
-
-The repository includes:
-
-- 800 oracle preference pairs for German Credit;
-- 361 hard preference pairs selected from SFT margin errors and low-confidence cases;
-- 549 training and 81 validation hard pairs for the German-Australian experiment;
-- DPO, SimPO, anchored DPO, risk-weighted DPO, and cost-sensitive SFT implementations or pilots;
-- prediction outputs and training logs for completed runs.
-
-The principal DPO/SimPO comparison comprises six completed variants:
-
-1. German oracle DPO;
-2. German oracle SimPO;
-3. German hard-pair DPO;
-4. German hard-pair SimPO;
-5. multi-dataset hard-pair DPO;
-6. multi-dataset hard-pair SimPO.
-
-None exceeds the frozen SFT checkpoint.
-
-Primary evidence: [`src/training/build_preference.py`](./src/training/build_preference.py), [`src/training/dpo_train.py`](./src/training/dpo_train.py), [`data/processed/german/preference/`](./data/processed/german/preference), and [`outputs/dpo/`](./outputs/dpo).
+Large model and LoRA weight binaries are intentionally excluded. Source code, processed datasets, shell entry points, predictions, metrics, training logs, adapter metadata, and research reports are committed.
 
 ## Final Results
 
-All headline metrics below use the consolidated C7 artifact, [`outputs/c7_final_metrics.json`](./outputs/c7_final_metrics.json), as the source of truth. C7 derives each operating point only from its committed validation predictions, then applies it to committed test predictions; it never reruns model inference or searches thresholds on test labels. This corrected the earlier zero-shot and multi-SFT operating-point reports. See [`docs/EVALUATION_PROTOCOL.md`](./docs/EVALUATION_PROTOCOL.md).
+All headline metrics use [`outputs/c7_final_metrics.json`](./outputs/c7_final_metrics.json) as the source of truth. C7 derives each operating point from committed validation predictions and then applies the frozen threshold to committed test predictions. It does not rerun model inference or search thresholds on test labels. See [`docs/EVALUATION_PROTOCOL.md`](./docs/EVALUATION_PROTOCOL.md).
 
 ### German Credit test set, N = 200
 
@@ -180,58 +71,88 @@ The three German SFT runs produce approximately:
 | Accuracy | 0.620 ± 0.04 |
 | ROC-AUC | 0.747 ± 0.01 |
 | High-risk recall | 0.821 ± 0.08 |
-| Validation-selected test cost | 123 ± 16 |
+| Validation-selected test Cost | 123 ± 16 |
 
-This distinction matters:
+The frozen seed-7 checkpoint obtains Cost 100, while the three-seed mean Cost is 123, above Logistic Regression's 113. Mean SFT ROC-AUC also remains below Logistic Regression's 0.757. The study therefore establishes that SFT is effective, but it does **not** claim statistically established superiority over Logistic Regression.
 
-- the best frozen SFT checkpoint obtains cost 100;
-- the three-seed mean cost is 123, above Logistic Regression's 113;
-- mean SFT ROC-AUC remains slightly below Logistic Regression's 0.757.
+## Experimental Roles
 
-The project therefore demonstrates that SFT is effective, but it does **not** claim robust or statistically established superiority over Logistic Regression.
+| Model or checkpoint | Experimental role | Main finding |
+|---|---|---|
+| Majority classifier | Sanity-check lower bound | Obtains 67.5% accuracy from class imbalance but misses every high-risk case; Cost 325 |
+| Logistic Regression | Strong non-LLM reference | Best final ranking and probability quality: ROC-AUC 0.757, NLL 0.552, Cost 113 |
+| Qwen3.5-4B zero-shot | Unadapted LLM baseline | Near-random ranking, severe high-risk over-prediction, and poor calibration |
+| Qwen3.5-4B LoRA SFT, seeds `10086`, `42`, `7` | Primary post-training experiment | Consistently creates useful risk-ranking ability; mean ROC-AUC 0.747 |
+| Qwen3.5-4B SFT seed `7` | Frozen downstream SFT checkpoint | Selected by the predeclared validation PR-AUC rule, not by test performance; test ROC-AUC 0.747 and Cost 100 |
+| Qwen3.5-4B multi-dataset SFT | Transfer and data-diversity experiment | Strong combined German–Australian ranking, but negative transfer on the primary German benchmark |
+| Qwen3.5-4B DPO / SimPO | Preference-optimization stress test | Oracle, hard-pair, and multi-dataset variants all underperform SFT and often collapse toward one label |
+| Cost-sensitive SFT / Anchored DPO / Risk-DPO pilots | Controls for asymmetric weighting and SFT anchoring | Cost weighting degrades ranking; anchored and risk-aware pilots do not yield a valid successful result |
 
-## What Succeeded
+## Implemented Pipeline
 
-### LoRA SFT
-
-Relative to Qwen3.5-4B zero-shot, the frozen SFT checkpoint improves:
-
-- ROC-AUC from 0.515 to 0.747;
-- PR-AUC from 0.348 to 0.555;
-- NLL from 1.720 to 0.556;
-- final asymmetric cost from 140 to 100 under a validation-selected threshold.
-
-This verifies that a compact LLM can learn meaningful task discrimination from structured credit records after supervised adaptation.
-
-### Cost-sensitive decision optimization
-
-Validation-selected thresholds materially reduce asymmetric cost. For SFT, the selected thresholds lie near the theoretical Bayes threshold for a 5:1 false-negative/false-positive cost ratio:
+### 1. Data governance and reproducible preprocessing
 
 ```text
-t* = 1 / (1 + 5) ≈ 0.167
+Raw data
+  → Normalized risk schema
+  → SFT ChatML records
+  → Preference records
+  → Evaluation records
 ```
 
-This separates representation learning from downstream operating-point selection and avoids using the test set to tune business cost.
+Implemented components include:
 
-### Reproducible experimental governance
+- audit of 10 financial-risk datasets across credit scoring, fraud detection, financial distress, and claim analysis;
+- unified `risk_label`, `task_type`, `target_type`, and `original_label` traceability;
+- protected-attribute extraction where available;
+- description-style and table-style prompt construction;
+- deterministic train/validation/test splitting;
+- manifests, schema validation, and repeated SHA-256 checks.
 
-The project preserves data provenance, deterministic splits, multi-seed reporting, strong non-LLM baselines, frozen evaluation rules, and negative results. These controls are central to the project outcome, not auxiliary documentation.
+The frozen German Credit pipeline contains 1,000 records and 20 input features, maps original labels `1/2 → 0/1`, and uses a deterministic `700/100/200` split with seed `10086`. The German–Australian validation set contains 1,182 training, 169 validation, and 339 test records.
 
-## What Ran but Did Not Reach the Target
+Primary evidence: [`convert_german.py`](./convert_german.py), [`data/processed/`](./data/processed), [`docs/RiskDataset_Schema.md`](./docs/RiskDataset_Schema.md), and [`docs/Progress_Report.md`](./docs/Progress_Report.md).
 
-### Stable superiority over Logistic Regression
+### 2. Cost-sensitive evaluation
 
-The original goal was to reliably exceed Logistic Regression on both risk ranking and asymmetric cost. That target was not achieved:
+The evaluator implements Accuracy, Balanced Accuracy, Macro-F1, high-/low-risk recall, ROC-AUC, PR-AUC, NLL, Brier score, expected calibration error, confusion matrices, and configurable false-negative/false-positive costs.
 
-- Logistic Regression retains the best ROC-AUC and NLL;
-- the best SFT seed obtains lower cost, but SFT's three-seed mean cost is higher;
-- the available test set is too small to claim statistical superiority from a single favorable seed.
+```text
+Cost = 5 × false negatives + 1 × false positives
+```
+
+A false negative means a genuinely high-risk applicant is classified as low risk. The 5:1 cost ratio favors high-risk recall, while ranking and calibration metrics prevent an all-high-risk classifier from appearing useful.
+
+Primary evidence: [`docs/EVALUATION_PROTOCOL.md`](./docs/EVALUATION_PROTOCOL.md), [`src/evaluation/metrics.py`](./src/evaluation/metrics.py), [`src/evaluation/c7_final.py`](./src/evaluation/c7_final.py), and [`outputs/c7_final_metrics.json`](./outputs/c7_final_metrics.json).
+
+### 3. LoRA supervised fine-tuning
+
+The final SFT experiments use `Qwen3.5-4B` with response-only causal-LM loss, LoRA rank 16, alpha 32, dropout 0.05, attention and MLP projection targets, five epochs, three German random seeds, and multi-GPU execution on 2 × RTX PRO 6000 Blackwell GPUs.
+
+SFT is the only post-training method in this project that consistently creates useful risk discrimination.
+
+Primary evidence: [`src/training/sft_lora_manual.py`](./src/training/sft_lora_manual.py), [`src/training/sft_multi.py`](./src/training/sft_multi.py), [`outputs/sft/`](./outputs/sft), and [`scripts/sft_slurm.sh`](./scripts/sft_slurm.sh).
+
+### 4. Preference construction and optimization
+
+The repository contains 800 German oracle preference pairs, 361 German hard pairs selected from SFT margin errors and low-confidence cases, and 549 training plus 81 validation hard pairs for the German–Australian experiment.
+
+The six principal DPO/SimPO comparisons are:
+
+1. German oracle DPO;
+2. German oracle SimPO;
+3. German hard-pair DPO;
+4. German hard-pair SimPO;
+5. multi-dataset hard-pair DPO;
+6. multi-dataset hard-pair SimPO.
+
+None exceeds the frozen SFT checkpoint.
+
+Primary evidence: [`src/training/build_preference.py`](./src/training/build_preference.py), [`src/training/dpo_train.py`](./src/training/dpo_train.py), [`data/processed/german/preference/`](./data/processed/german/preference), and [`outputs/dpo/`](./outputs/dpo).
+
+## Results That Did Not Reach the Target
 
 ### DPO and SimPO
-
-Across oracle, hard-pair, single-dataset, and multi-dataset settings, DPO and SimPO fail to improve the frozen SFT checkpoint.
-
-Representative outcomes include:
 
 | Experiment | ROC-AUC | Cost or decision behavior | Outcome |
 |---|---:|---|---|
@@ -244,29 +165,27 @@ Representative outcomes include:
 
 ### Multi-dataset SFT
 
-German-Australian SFT reaches overall ROC-AUC 0.830 and Australian ROC-AUC 0.938, showing that the shared pipeline can learn across datasets. However, the frozen German prediction artifact reaches ROC-AUC 0.720, below the single-dataset SFT's 0.747, so the additional data does not improve the primary German benchmark.
+German–Australian SFT reaches overall ROC-AUC 0.830 and Australian ROC-AUC 0.938, but the frozen German prediction artifact reaches 0.720, below single-dataset SFT's 0.747. More data improves coverage without improving the primary German benchmark.
 
 ### Cost-sensitive SFT, Anchored DPO, and Risk-DPO
 
-- cost-sensitive SFT with 5:1 weighting reduces German ROC-AUC to 0.597 and collapses decisions toward high risk;
-- anchored DPO does not produce a valid positive result because the pilot exposed an empty validation split;
+- cost-sensitive SFT with 5:1 training weights reduces German ROC-AUC to 0.597 and collapses decisions toward high risk;
+- anchored DPO does not produce a valid positive result because the pilot exposes an empty validation split;
 - the risk-weighted anchored pilot encounters training and device-placement failures;
-- the Risk-DPO route is terminated after the underlying label-level preference objective repeatedly fails to preserve risk ranking.
+- the Risk-DPO route is terminated after the underlying label-level preference objective repeatedly fails to preserve ranking.
 
-These runs are retained as engineering and methodological evidence, but they are not presented as successful algorithms.
+These runs are retained as engineering and methodological evidence, not presented as successful algorithms.
 
 ## Why Preference Optimization Failed in This Setting
 
-The central hypothesis is an objective-task mismatch.
-
-Each sample's response is only one of two short strings:
+Each response is only one of two short strings:
 
 ```text
 low risk
 high risk
 ```
 
-Within a class, preference pairs therefore reuse the same chosen and rejected texts. DPO/SimPO can reduce their objective primarily by shifting the global probability of the two labels, without learning that one applicant should rank above another applicant in risk.
+Within a class, preference pairs therefore reuse the same chosen and rejected texts. DPO/SimPO can reduce their objective by shifting the global probability of the two labels without learning that one applicant should rank above another in risk.
 
 The multi-dataset log-probability audit supports this mechanism:
 
@@ -278,9 +197,7 @@ The multi-dataset log-probability audit supports this mechanism:
 
 After preference optimization, both label log probabilities become extreme and the high-risk score collapses into a narrow interval. The model changes its global label prior but loses useful sample-level separation.
 
-This conclusion is deliberately bounded:
-
-> In the tested `Qwen3.5-4B`, small tabular-credit, two-label short-answer setting, label-level DPO/SimPO does not preserve or improve risk ranking. The project does not claim that DPO or SimPO is ineffective for all classification, reasoning, or preference-learning tasks.
+> **Bounded conclusion:** in the tested `Qwen3.5-4B`, small tabular-credit, two-label short-answer setting, label-level DPO/SimPO does not preserve or improve risk ranking. This is not a claim that DPO or SimPO is ineffective for all classification, reasoning, or preference-learning tasks.
 
 Primary evidence: [`src/evaluation/c5v3_audit.py`](./src/evaluation/c5v3_audit.py) and [`docs/Progress_Report.md`](./docs/Progress_Report.md).
 
@@ -288,19 +205,18 @@ Primary evidence: [`src/evaluation/c5v3_audit.py`](./src/evaluation/c5v3_audit.p
 
 ```text
 risk-control-posttraining/
-├── convert_german.py                  # Deterministic German converter and validation
+├── .github/workflows/quality.yml      # CPU-only data, metric, and leakage-regression CI
 ├── configs/                           # Experiment configuration artifacts
-├── .github/workflows/quality.yml       # CPU-only data, metric, and leakage-regression CI
+├── convert_german.py                  # Deterministic German converter and validation
 ├── data/processed/                    # Normalized, SFT, and preference datasets
-├── docs/                              # Data contracts, audit, plans, and progress report
+├── docs/                              # Data contracts, audit, protocols, showcase, and reports
 ├── outputs/baselines/                 # Baseline predictions
 ├── outputs/sft/                       # SFT logs, predictions, and adapter metadata
 ├── outputs/dpo/                       # DPO/SimPO and pilot outputs
 ├── outputs/c7_final_metrics.json      # Final consolidated evaluation
-├── requirements-eval.txt               # Lightweight reproduction dependencies
-├── requirements-train.txt              # GPU training/inference dependencies
-├── tests/                              # Dataset and leakage-regression tests
-├── reports/baseline_report.md         # Stage-C2 baseline report
+├── requirements-eval.txt              # Lightweight reproduction dependencies
+├── requirements-train.txt             # GPU training/inference dependencies
+├── tests/                              # Dataset, metric, showcase, and leakage-regression tests
 ├── scripts/                           # Slurm and evaluation entry points
 ├── src/baselines/                     # Majority, Logistic Regression, zero-shot Qwen
 ├── src/evaluation/                    # Metrics, comparisons, audits, final evaluation
@@ -309,16 +225,16 @@ risk-control-posttraining/
 
 Recommended starting points:
 
-1. [`docs/Progress_Report.md`](./docs/Progress_Report.md) — full experimental history and frozen conclusions;
-2. [`outputs/c7_final_metrics.json`](./outputs/c7_final_metrics.json) — final metrics;
-3. [`src/training/sft_lora_manual.py`](./src/training/sft_lora_manual.py) — response-only LoRA SFT;
-4. [`src/training/dpo_train.py`](./src/training/dpo_train.py) — DPO/SimPO implementation;
-5. [`src/evaluation/c5v3_audit.py`](./src/evaluation/c5v3_audit.py) — label-prior collapse audit.
+1. [`docs/index.html`](./docs/index.html) — bilingual outcome-oriented showcase;
+2. [`outputs/c7_final_metrics.json`](./outputs/c7_final_metrics.json) — frozen final metrics;
+3. [`docs/Progress_Report.md`](./docs/Progress_Report.md) — complete experiment history and bounded conclusions;
+4. [`src/training/sft_lora_manual.py`](./src/training/sft_lora_manual.py) — response-only LoRA SFT;
+5. [`src/training/dpo_train.py`](./src/training/dpo_train.py) — DPO/SimPO implementation;
+6. [`src/evaluation/c5v3_audit.py`](./src/evaluation/c5v3_audit.py) — label-prior-collapse audit.
 
 ## Quick Start
 
-The published metrics can be reproduced without a GPU or model weights because
-the exact validation and test prediction artifacts are version controlled.
+The published metrics can be reproduced without a GPU or model weights because the exact validation and test prediction artifacts are version controlled.
 
 ```bash
 git clone <repository-url>
@@ -331,9 +247,7 @@ python -m src.evaluation.c7_final --output /tmp/c7_final_metrics.json
 cmp outputs/c7_final_metrics.json /tmp/c7_final_metrics.json
 ```
 
-For the full GPU workflow, install `requirements-train.txt`, obtain the
-excluded base model and LoRA adapter weights under their original terms, and
-provide the local model path explicitly:
+For the full GPU workflow, install `requirements-train.txt`, obtain the excluded base model and LoRA adapter weights under their original terms, and provide the local model path explicitly:
 
 ```bash
 export RISK_CONTROL_MODEL_ID=/absolute/path/to/Qwen3.5-4B
@@ -345,13 +259,13 @@ sbatch scripts/dpo_train.sh
 sbatch scripts/simpo_train.sh
 ```
 
-`scripts/sft_multi.sh` runs the German-Australian transfer experiment. The
-Slurm scripts use the activated environment's `python3` by default; set
-`PYTHON_BIN` to choose another interpreter. Training and inference are not
-expected to reproduce bit-for-bit without the original hardware, model
-revision, and excluded weight files, while the published C7 evaluation is
-fully artifact-reproducible. Historical planning documents may mention an
-earlier Qwen version; current runnable configurations use `Qwen3.5-4B`.
+`scripts/sft_multi.sh` runs the German–Australian transfer experiment. Training and inference are not expected to reproduce bit-for-bit without the original hardware, model revision, and excluded weight files; the published C7 evaluation is fully artifact-reproducible.
+
+## Interactive Showcase and Deployment
+
+[`docs/index.html`](./docs/index.html) is a static bilingual showcase of the frozen findings. It requires no backend or model weights and exposes the three headline results before the detailed metric explorer. The embedded data are checked against `outputs/c7_final_metrics.json` by `tests/test_showcase_data.py`.
+
+Local validation and GitHub Pages publication instructions are intentionally kept in [`docs/SHOWCASE.md`](./docs/SHOWCASE.md), after the research findings and evidence path rather than at the project entrance.
 
 ## Skills Demonstrated
 
@@ -364,7 +278,7 @@ earlier Qwen version; current runnable configurations use `Qwen3.5-4B`.
 
 ## Resume-Ready Summary
 
-> Built a reproducible `Qwen3.5-4B` financial-risk post-training pipeline spanning data normalization, ChatML construction, LoRA SFT, DPO/SimPO, and asymmetric-cost evaluation. LoRA SFT improved German Credit ROC-AUC from 0.515 to 0.747 and achieved test cost 100 using a validation-selected threshold, approaching Logistic Regression's 0.757 ROC-AUC. Ran six DPO/SimPO variants across oracle, hard-pair, and multi-dataset settings; none exceeded SFT, and log-probability audits traced the failure to global label-prior shifts rather than improved sample-level ranking.
+> Built a reproducible `Qwen3.5-4B` financial-risk post-training pipeline spanning data normalization, ChatML construction, LoRA SFT, DPO/SimPO, and asymmetric-cost evaluation. LoRA SFT improved German Credit ROC-AUC by `+0.232` (`0.515 → 0.747`), approaching Logistic Regression's `0.757`. Ran six principal DPO/SimPO variants across oracle, hard-pair, and multi-dataset settings; none exceeded SFT, and log-probability audits traced the failure to global label-prior shifts rather than improved sample-level ranking.
 
 ## Attribution
 
@@ -374,7 +288,7 @@ This project is derived from and informed by the original CALM research:
 - Original repository: [Dai-shen/CALM](https://github.com/Dai-shen/CALM);
 - original datasets, CALM-7B, and upstream assets remain subject to their respective licenses and terms.
 
-This repository does not claim authorship of the original CALM paper, model, benchmark, or dataset collection.
+This repository does not claim authorship of the original CALM paper, model, benchmark, or dataset collection. See [`NOTICE`](./NOTICE) for provenance details.
 
 ## Disclaimer
 
