@@ -17,8 +17,13 @@ SHOWCASE_MODEL_TO_C7 = {
 class ShowcaseDataTests(unittest.TestCase):
     def setUp(self):
         self.html = (REPOSITORY_ROOT / "docs/index.html").read_text(encoding="utf-8")
-        self.readme_en = (REPOSITORY_ROOT / "README.md").read_text(encoding="utf-8")
-        self.readme_zh = (REPOSITORY_ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
+        self.javascript = (REPOSITORY_ROOT / "docs/assets/showcase.js").read_text(encoding="utf-8")
+        self.stylesheet = (REPOSITORY_ROOT / "docs/assets/showcase.css").read_text(encoding="utf-8")
+        self.readme_zh = (REPOSITORY_ROOT / "README.md").read_text(encoding="utf-8")
+        self.readme_en = (REPOSITORY_ROOT / "README.en.md").read_text(encoding="utf-8")
+        self.readme_legacy_zh = (REPOSITORY_ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
+        self.static_chart = REPOSITORY_ROOT / "docs/assets/roc_auc_trend.svg"
+
         data_match = re.search(
             r'<script id="showcase-data" type="application/json">\s*(.*?)\s*</script>',
             self.html,
@@ -51,55 +56,82 @@ class ShowcaseDataTests(unittest.TestCase):
                 ):
                     self.assertAlmostEqual(source[metric], model[metric], places=4)
 
-    def test_showcase_exposes_bilingual_and_interactive_controls(self):
-        self.assertIn('data-language="en"', self.html)
-        self.assertIn('data-language="zh"', self.html)
-        self.assertIn('id="metric-select"', self.html)
-        self.assertIn('id="metric-chart"', self.html)
-        self.assertIn('src="./assets/showcase.js"', self.html)
+    def test_chinese_is_the_default_language_with_english_switches(self):
+        self.assertIn('<html lang="zh-CN">', self.html)
+        self.assertIn('class="language-button is-active" data-language="zh" aria-pressed="true"', self.html)
+        self.assertIn('class="language-button" data-language="en" aria-pressed="false"', self.html)
+        self.assertIn('const state = { language: "zh"', self.javascript)
 
-    def test_showcase_leads_with_three_core_findings(self):
-        findings = (
-            ('id="finding-sft"', "+0.232"),
-            ('id="finding-baseline"', "0.757 <span>vs</span> 0.747"),
-            ('id="finding-preference"', "6 / 6"),
-        )
-        results_position = self.html.index('id="results-heading"')
-        for card_id, quantitative_text in findings:
-            with self.subTest(card=card_id):
-                self.assertIn(card_id, self.html)
-                self.assertIn(quantitative_text, self.html)
-                self.assertLess(self.html.index(card_id), results_position)
+        self.assertTrue(self.readme_zh.startswith("# 大语言模型风控后训练"))
+        self.assertIn('<a href="./README.md"><strong>中文</strong></a>', self.readme_zh)
+        self.assertIn('<a href="./README.en.md">English</a>', self.readme_zh)
+        self.assertIn('<a href="./README.en.md"><strong>English</strong></a>', self.readme_en)
+        self.assertIn('<a href="./README.md">中文</a>', self.readme_en)
+        self.assertEqual(self.readme_zh, self.readme_legacy_zh)
 
-    def test_readmes_lead_with_question_findings_and_contributions(self):
-        english_sections = (
-            "## Research Question",
-            "## Four Quantitative Findings",
-            "## Project Contributions",
-            "## Evidence and Implementation Status",
+    def test_showcase_sections_follow_the_required_order(self):
+        ordered_ids = (
+            'id="summary"',
+            'id="research-question"',
+            'id="technical-route"',
+            'id="implementation"',
+            'id="experiment-data"',
+            'id="conclusions"',
+            'id="reproduction"',
         )
+        positions = [self.html.index(section_id) for section_id in ordered_ids]
+        self.assertEqual(positions, sorted(positions))
+
+    def test_readmes_follow_the_required_order(self):
         chinese_sections = (
+            "## 项目摘要",
             "## 研究问题",
-            "## 四条量化结论",
-            "## 项目贡献",
-            "## 证据与实现状态",
+            "## 技术路线",
+            "## 实施细节",
+            "## 实验数据",
+            "## 实验结论",
+            "## 复现指引",
+        )
+        english_sections = (
+            "## Project Summary",
+            "## Research Questions",
+            "## Technical Route",
+            "## Implementation Details",
+            "## Experimental Data",
+            "## Experimental Conclusions",
+            "## Reproduction Guide",
         )
 
         for document, sections in (
-            (self.readme_en, english_sections),
             (self.readme_zh, chinese_sections),
+            (self.readme_en, english_sections),
         ):
             positions = [document.index(section) for section in sections]
             self.assertEqual(positions, sorted(positions))
 
-        self.assertGreater(
-            self.readme_en.index("## Interactive Showcase and Deployment"),
-            self.readme_en.index("## Quick Start"),
-        )
-        self.assertGreater(
-            self.readme_zh.index("## 交互式展示与部署"),
-            self.readme_zh.index("## 快速复现"),
-        )
+    def test_experimental_data_uses_line_charts_and_tables(self):
+        self.assertIn('id="metric-chart"', self.html)
+        self.assertIn('data-chart-type="line"', self.html)
+        self.assertIn('id="metric-table-body"', self.html)
+        self.assertIn('createSvgElement("polyline"', self.javascript)
+        self.assertTrue(self.static_chart.is_file())
+        self.assertIn("./docs/assets/roc_auc_trend.svg", self.readme_zh)
+        self.assertIn("./docs/assets/roc_auc_trend.svg", self.readme_en)
+
+    def test_monochrome_visual_system_uses_color_only_as_an_accent(self):
+        self.assertIn("--ink: #111111;", self.stylesheet)
+        self.assertIn("--paper: #ffffff;", self.stylesheet)
+        self.assertIn("--canvas: #f4f4f1;", self.stylesheet)
+        self.assertIn("--accent: #2563eb;", self.stylesheet)
+        self.assertIn("border: 1px solid var(--line);", self.stylesheet)
+        self.assertNotIn("radial-gradient", self.stylesheet)
+
+    def test_live_showcase_and_reproduction_links_are_exposed(self):
+        live_url = "https://urgencywu.github.io/risk-control-posttraining/"
+        self.assertIn(live_url, self.readme_zh)
+        self.assertIn(live_url, self.readme_en)
+        self.assertIn("git clone https://github.com/UrgencyWu/risk-control-posttraining.git", self.readme_zh)
+        self.assertIn("git clone https://github.com/UrgencyWu/risk-control-posttraining.git", self.readme_en)
 
 
 if __name__ == "__main__":
