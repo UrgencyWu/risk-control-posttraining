@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560" role="img" aria-labelledby="title desc">
+<title id="title">German Credit 多指标分组柱状图</title>
+<desc id="desc">六个零到一尺度指标，每个指标包含 Majority、Zero-shot、Logistic Regression、SFT 和 Multi-SFT 五个算法的柱形。</desc>
+<rect width="1200" height="560" fill="#ffffff"/>
+<text x="70" y="34" fill="#111111" font-family="system-ui,sans-serif" font-size="22" font-weight="700">German Credit · 多指标算法对比</text>
+<text x="70" y="55" fill="#666666" font-family="system-ui,sans-serif" font-size="13">AUC / Recall 越高越好；Brier / ECE 越低越好</text>
+<g stroke="#e2e2de" stroke-width="1">
+<line x1="70" x2="1170" y1="445" y2="445"/><line x1="70" x2="1170" y1="370" y2="370"/><line x1="70" x2="1170" y1="295" y2="295"/><line x1="70" x2="1170" y1="220" y2="220"/><line x1="70" x2="1170" y1="145" y2="145"/><line x1="70" x2="1170" y1="70" y2="70"/>
+</g>
+<g fill="#666666" font-family="system-ui,sans-serif" font-size="11" text-anchor="end">
+<text x="60" y="449">0.0</text><text x="60" y="374">0.2</text><text x="60" y="299">0.4</text><text x="60" y="224">0.6</text><text x="60" y="149">0.8</text><text x="60" y="74">1.0</text>
+</g>
+<line x1="70" x2="70" y1="70" y2="445" stroke="#111111"/><line x1="70" x2="1170" y1="445" y2="445" stroke="#111111"/>
+<!-- ROC-AUC -->
+<rect x="90" y="257.5" width="24" height="187.5" fill="#9ca3af"/><rect x="118" y="251.8" width="24" height="193.2" fill="#374151"/><rect x="146" y="161.3" width="24" height="283.7" fill="#2563eb"/><rect x="174" y="164.8" width="24" height="280.2" fill="#0f766e"/><rect x="202" y="174.9" width="24" height="270.1" fill="#b45309"/>
+<!-- PR-AUC -->
+<rect x="273" y="323.1" width="24" height="121.9" fill="#9ca3af"/><rect x="301" y="314.5" width="24" height="130.5" fill="#374151"/><rect x="329" y="221.6" width="24" height="223.4" fill="#2563eb"/><rect x="357" y="236.9" width="24" height="208.1" fill="#0f766e"/><rect x="385" y="247.4" width="24" height="197.6" fill="#b45309"/>
+<!-- Brier -->
+<rect x="456" y="323.1" width="24" height="121.9" fill="#9ca3af"/><rect x="484" y="231.4" width="24" height="213.6" fill="#374151"/><rect x="512" y="376.9" width="24" height="68.1" fill="#2563eb"/><rect x="540" y="373.6" width="24" height="71.4" fill="#0f766e"/><rect x="568" y="372.3" width="24" height="72.7" fill="#b45309"/>
+<!-- ECE -->
+<rect x="639" y="323.1" width="24" height="121.9" fill="#9ca3af"/><rect x="667" y="222.6" width="24" height="222.4" fill="#374151"/><rect x="695" y="416.7" width="24" height="28.3" fill="#2563eb"/><rect x="723" y="418.9" width="24" height="26.1" fill="#0f766e"/><rect x="751" y="422.8" width="24" height="22.2" fill="#b45309"/>
+<!-- High-risk recall -->
+<rect x="822" y="445" width="24" height="0" fill="#9ca3af"/><rect x="850" y="75.8" width="24" height="369.2" fill="#374151"/><rect x="878" y="139.2" width="24" height="305.8" fill="#2563eb"/><rect x="906" y="93.1" width="24" height="351.9" fill="#0f766e"/><rect x="934" y="156.5" width="24" height="288.5" fill="#b45309"/>
+<!-- Low-risk recall -->
+<rect x="1005" y="70" width="24" height="375" fill="#9ca3af"/><rect x="1033" y="445" width="24" height="0" fill="#374151"/><rect x="1061" y="217.2" width="24" height="227.8" fill="#2563eb"/><rect x="1089" y="292.2" width="24" height="152.8" fill="#0f766e"/><rect x="1117" y="256.1" width="24" height="188.9" fill="#b45309"/>
+<g fill="#111111" font-family="system-ui,sans-serif" font-size="12" font-weight="600" text-anchor="middle">
+<text x="158" y="476">ROC-AUC</text><text x="341" y="476">PR-AUC</text><text x="524" y="476">Brier</text><text x="707" y="476">ECE</text><text x="890" y="476">HR Recall</text><text x="1073" y="476">LR Recall</text>
+</g>
+<g font-family="system-ui,sans-serif" font-size="12" fill="#333333">
+<rect x="70" y="514" width="12" height="12" fill="#9ca3af"/><text x="88" y="525">Majority</text>
+<rect x="230" y="514" width="12" height="12" fill="#374151"/><text x="248" y="525">Zero-shot</text>
+<rect x="390" y="514" width="12" height="12" fill="#2563eb"/><text x="408" y="525">Logistic Regression</text>
+<rect x="620" y="514" width="12" height="12" fill="#0f766e"/><text x="638" y="525">SFT</text>
+<rect x="735" y="514" width="12" height="12" fill="#b45309"/><text x="753" y="525">Multi-SFT</text>
+</g>
+</svg>
