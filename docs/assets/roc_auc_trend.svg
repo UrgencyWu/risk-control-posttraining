@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="420" viewBox="0 0 960 420" role="img" aria-labelledby="title desc">
-  <title id="title">German Credit ROC-AUC trend</title>
-  <desc id="desc">Qwen3.5-4B improves from 0.515 zero-shot to 0.747 after LoRA SFT, while multi-dataset SFT scores 0.720. Logistic Regression provides a 0.757 reference line.</desc>
+  <title id="title">German Credit ROC-AUC</title>
+  <desc id="desc">Qwen3.5-4B scores 0.515 zero-shot, 0.747 after LoRA SFT, and 0.720 after multi-dataset SFT. Logistic Regression is the 0.757 reference.</desc>
   <rect width="960" height="420" fill="#ffffff"/>
   <text x="72" y="36" fill="#111111" font-family="system-ui, sans-serif" font-size="22" font-weight="700">German Credit · ROC-AUC</text>
-  <text x="72" y="58" fill="#666666" font-family="system-ui, sans-serif" font-size="13">Qwen adaptation path with Logistic Regression as the fixed reference</text>
+  <text x="72" y="58" fill="#666666" font-family="system-ui, sans-serif" font-size="13">Qwen3.5-4B · Zero-shot → LoRA SFT → Multi-SFT</text>
 
   <g stroke="#e1e1de" stroke-width="1">
     <line x1="88" y1="300" x2="888" y2="300"/>
@@ -22,7 +22,7 @@
   <line x1="88" y1="60" x2="88" y2="340" stroke="#111111" stroke-width="1.5"/>
 
   <line x1="88" y1="94" x2="888" y2="94" stroke="#8a8a84" stroke-width="1.5" stroke-dasharray="7 7"/>
-  <text x="884" y="86" fill="#555555" font-family="system-ui, sans-serif" font-size="12" text-anchor="end">Logistic Regression 0.757</text>
+  <text x="884" y="86" fill="#555555" font-family="system-ui, sans-serif" font-size="12" text-anchor="end">Logistic Regression · 0.757</text>
 
   <polyline points="160,288 480,102 800,124" fill="none" stroke="#111111" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
 
@@ -43,8 +43,8 @@
 
   <g font-family="system-ui, sans-serif">
     <path d="M 185 260 C 270 190, 350 130, 445 108" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="4 5"/>
-    <text x="300" y="168" fill="#2563eb" font-size="14" font-weight="800">+0.232 after SFT</text>
+    <text x="300" y="168" fill="#2563eb" font-size="14" font-weight="800">SFT · +0.232</text>
   </g>
 
-  <text x="88" y="402" fill="#777777" font-family="system-ui, sans-serif" font-size="11">Source: committed C7 prediction artifacts; decision thresholds are selected on validation data only.</text>
+  <text x="88" y="402" fill="#777777" font-family="system-ui, sans-serif" font-size="11">C7 frozen artifacts · validation-selected thresholds</text>
 </svg>
